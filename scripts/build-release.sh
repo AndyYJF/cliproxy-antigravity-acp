@@ -10,9 +10,9 @@ version="${tag#v}"
 export GOOS=linux GOARCH=amd64
 go test ./cmd/bridge ./cmd/plugin
 mkdir -p build/release
-CGO_ENABLED=1 go build -trimpath -buildmode=c-shared \
+CGO_ENABLED=1 go build -buildvcs=false -trimpath -buildmode=c-shared \
   -ldflags="-s -w -X main.pluginVersion=$version" \
   -o "build/release/antigravity-acp-v$version.so" ./cmd/plugin
-CGO_ENABLED=0 go build -trimpath \
+CGO_ENABLED=0 go build -buildvcs=false -trimpath \
   -ldflags="-s -w -X main.bridgeVersion=$version" \
   -o build/release/acp-bridge ./cmd/bridge
