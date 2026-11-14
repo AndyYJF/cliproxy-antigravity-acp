@@ -50,7 +50,45 @@ flowchart LR
 | 可选主面板 | Management Center v1.27.4，提交 `d06a110` |
 | 可选前端构建 | Bun 1.4.3 |
 
-这些是已验证的基线，并非对更新版本的兼容性承诺。官方安装脚本可能下载比基线更新的 CLI，应记录实际版本并在升级前验证。当前没有提供预编译发布包；下面从源码构建。
+这些是已验证的基线，并非对更新版本的兼容性承诺。官方安装脚本可能下载比基线更新的 CLI，应记录实际版本并在升级前验证。提供 tag 自动构建的 Release 预编译包，也可以按下面的步骤从源码构建。
+
+
+## 使用 Release 预编译包部署（推荐）
+
+从 [Releases](https://github.com/AndyYJF/cliproxy-antigravity-acp/releases) 下载 Linux amd64 完整部署包，无需安装 Go 或编译插件。仍需要 Docker Compose、curl、OpenSSL，以及单独安装的官方 Antigravity CLI。
+
+下面以 0.11.1 为例，在新的部署目录执行：
+
+~~~bash
+sudo mkdir -p /opt/cpa-acp
+sudo chown "$(id -u):$(id -g)" /opt/cpa-acp
+cd /opt/cpa-acp
+
+RELEASE_VERSION=0.11.1
+RELEASE_URL="https://github.com/AndyYJF/cliproxy-antigravity-acp/releases/download/v$RELEASE_VERSION"
+curl -fLO "$RELEASE_URL/cliproxy-antigravity-acp_${RELEASE_VERSION}_linux_amd64.tar.gz"
+curl -fLO "$RELEASE_URL/checksums.txt"
+# 只校验本次下载的完整包
+grep "  cliproxy-antigravity-acp_${RELEASE_VERSION}_linux_amd64.tar.gz$" checksums.txt | sha256sum -c -
+tar -xzf "cliproxy-antigravity-acp_${RELEASE_VERSION}_linux_amd64.tar.gz"
+
+# 先按下文第 1 步安装官方 Linux agy CLI，再复制：
+install -m 755 "$HOME/.local/bin/agy" bin/agy
+docker build -t "cliproxy-antigravity-acp:$RELEASE_VERSION" .
+~~~
+
+随后直接从下文 **第 3 步「初始化状态与内部令牌」**继续，跳过 clone 和 Go 编译。完整包内的 Compose 镜像标签、CPA 配置版本及 `VERSION` 文件已与 tag 同步；安装共享库时，目标文件名中的版本必须与该版本一致。
+
+发布资产：
+
+| 文件 | 用途 |
+| --- | --- |
+| `cliproxy-antigravity-acp_<版本>_linux_amd64.tar.gz` | 推荐：插件、Bridge、Dockerfile、Compose、配置示例及文档 |
+| `antigravity-acp_<版本>_linux_amd64.zip` | 仅插件，包名和根目录中的版本化共享库遵循 CPA 安装规则 |
+| `acp-bridge-linux-amd64` | 仅 Bridge，可用于已有部署 |
+| `checksums.txt` | 所有发布资产的 SHA-256 校验值 |
+
+完整包不含官方 CLI、Google 凭证、内部令牌或预构建 Docker 镜像。定制 CPA 主面板仍需按其文档构建。升级已有实例时，先解压到新目录，再按升级流程替换文件，保留原有配置和 `state/`，不要直接覆盖已有部署。
 
 ## 部署流程
 
@@ -365,6 +403,26 @@ docker run --rm -v "$PWD:/src" -w /src \
 ~~~
 
 管理页面覆盖代码的测试与构建步骤见其 [README](management-center/README.md)。真实 CLI 与 Google 服务的行为仍需单独低频验证，模拟测试不能证明账号配额或上游模型可用性。
+
+
+## 维护者发布流程
+
+推送 `vX.Y.Z` 或 `vX.Y.Z-rc.1` 形式的 tag 后，[Release 工作流](https://github.com/AndyYJF/cliproxy-antigravity-acp/blob/main/.github/workflows/release.yml) 自动：
+
+1. 在 Go 1.26 / Debian bookworm 容器中运行现有模拟测试。
+2. 构建 Linux amd64 的 CGO 插件和静态 Bridge，将 tag 版本写入两者。
+3. 生成插件 ZIP、完整部署包、独立 Bridge 及校验文件。
+4. 上传完成后公开 Release；带预发布后缀的 tag 标记为 prerelease。
+
+~~~bash
+# 提交并推送代码、更新 CHANGELOG 和源码默认版本后，使用新的版本号
+git tag -a v0.11.2 -m "Release v0.11.2"
+git push origin v0.11.2
+~~~
+
+工作流使用仓库内置 `GITHUB_TOKEN`，无需配置 Google 凭证或个人 PAT。失败后可以在 Actions 中重新运行；未完成的草稿会继续上传，已公开的 Release 不会被重跑覆盖。需要修复已发布内容时，请使用新 tag。
+
+编译版本通过 `-ldflags -X` 注入，源码直接编译则使用源码中的默认版本。发布前仍应更新 README 的示例版本、默认配置和 CHANGELOG；tag 注入不会自动改写仓库文件。工作流配置参考 [GitHub 触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)，发布操作使用 [GitHub CLI](https://cli.github.com/manual/gh_release_create)。
 
 ## 隐私、第三方组件与许可
 

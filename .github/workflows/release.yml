@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test and build Linux amd64
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
+            golang:1.26-bookworm bash scripts/build-release.sh "$RELEASE_TAG"
+
+      - name: Package deployment bundle and checksums
+        run: python3 scripts/package-release.py "$RELEASE_TAG"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          prerelease=false
+          [[ "$RELEASE_TAG" != *-* ]] || prerelease=true
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [[ "$draft" == false ]]; then
+              echo "Release is already published; preserving existing assets."
+              exit 0
+            fi
+          else
+            cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          Linux amd64 · CPA v8.0.69 · Go 1.26 / Debian bookworm
+
+          - **cliproxy-antigravity-acp_*_linux_amd64.tar.gz**：完整部署包，包含插件、Bridge、Dockerfile、Compose 和部署说明。
+          - **antigravity-acp_*_linux_amd64.zip**：CPA 插件包。
+          - **acp-bridge-linux-amd64**：独立 Bridge 二进制。
+          - **checksums.txt**：SHA-256 校验值。
+
+          官方 Antigravity CLI 不包含在发布包中，请按 README 单独安装到 bin/agy，再构建 Bridge 容器。升级时保留原 state/ 和内部令牌。定制 CPA 主面板仍需按 management-center/README.md 构建。
+          NOTES
+            gh release create "$RELEASE_TAG" --verify-tag --draft \
+              --prerelease="$prerelease" --title "$RELEASE_TAG" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

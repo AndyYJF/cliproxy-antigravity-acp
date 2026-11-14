@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const pluginVersion = "0.11.1"
+var pluginVersion = "0.11.1"
 const resourceBase = "/v0/resource/plugins/antigravity-acp"
 const managementBase = "/v0/management/plugins/antigravity-acp"
 

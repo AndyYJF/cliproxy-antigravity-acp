@@ -42,3 +42,6 @@ bridge-token
 # Private historical deployment notes and obsolete local harness
 /docs/
 /tests/local_integration.py
+
+# Release artifacts
+/dist/

@@ -23,6 +23,8 @@ import (
 	"time"
 )
 
+var bridgeVersion = "0.11.1"
+
 type object = map[string]any
 type rpcError struct {
 	Code    int    `json:"code"`
@@ -115,7 +117,7 @@ func startACPHome(ctx context.Context, home string) (*acp, error) {
 		}
 	}()
 
-	initialized, err := a.call(ctx, "initialize", object{"protocolVersion": 1, "clientCapabilities": object{}, "clientInfo": object{"name": "cliproxy-antigravity-acp", "version": "0.11.1"}}, nil)
+	initialized, err := a.call(ctx, "initialize", object{"protocolVersion": 1, "clientCapabilities": object{}, "clientInfo": object{"name": "cliproxy-antigravity-acp", "version": bridgeVersion}}, nil)
 	if err != nil {
 		a.close()
 		return nil, err
@@ -638,7 +640,7 @@ func main() {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		concurrency := admission.snapshot()
 		cache := liveSessions.stats()
-		sendJSON(w, 200, object{"status": "ok", "active_requests": active.Load(), "concurrency": concurrency, "version": "0.11.1", "session_cache": cache, "request_stats": requestStatsSnapshot(), "recent_requests": recentRequestSnapshot()})
+		sendJSON(w, 200, object{"status": "ok", "active_requests": active.Load(), "concurrency": concurrency, "version": bridgeVersion, "session_cache": cache, "request_stats": requestStatsSnapshot(), "recent_requests": recentRequestSnapshot()})
 	})
 	mux.HandleFunc("GET /v1/models", withAdmission(modelList))
 	mux.HandleFunc("POST /v1/chat/completions", observeRequest(withAdmission(chat)))
