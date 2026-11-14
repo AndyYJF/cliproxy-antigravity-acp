@@ -1,0 +1,11 @@
+# Merge into your client configuration; replace address and absolute catalog path.
+model = "antigravity-acp/gemini-3.8-flash"
+model_provider = "cpa-acp"
+model_catalog_json = "/absolute/path/models.json"
+web_search = "disabled"
+
+[model_providers.cpa-acp]
+name = "CPA Antigravity ACP"
+base_url = "https://your-cpa-host/v1"
+wire_api = "responses"
+env_key = "CPA_API_KEY"

@@ -1,0 +1,11 @@
+# Merge into the existing CPA configuration; do not replace other providers.
+plugins:
+  enabled: true
+  dir: /CLIProxyAPI/plugins
+  configs:
+    antigravity-acp:
+      enabled: true
+      bridge_url: http://antigravity-acp-bridge:8328
+      token_file: /run/antigravity-acp-token
+      store:
+        version: 0.11.1

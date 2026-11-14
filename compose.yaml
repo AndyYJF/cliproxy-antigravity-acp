@@ -1,0 +1,27 @@
+services:
+  bridge:
+    image: ${ACP_IMAGE:-cliproxy-antigravity-acp:0.11.1}
+    container_name: antigravity-acp-bridge
+    environment:
+      ACP_MAX_CONCURRENCY: "4"
+      ACP_QUEUE_CAPACITY: "16"
+      ACP_QUEUE_TIMEOUT: "30s"
+    restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 1536m
+    volumes:
+      - ./state/home:/home/acp
+      - ./state/bridge-token:/run/acp-token:ro
+    tmpfs:
+      - /work:uid=10001,gid=10001,mode=0700
+      - /tmp:uid=10001,gid=10001,mode=1777
+    networks: [cpanet]
+networks:
+  cpanet:
+    external: true
+    name: ${ACP_NETWORK:-cpanet}

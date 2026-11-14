@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!bin/
+bin/*
+!bin/agy
+!bin/acp-bridge

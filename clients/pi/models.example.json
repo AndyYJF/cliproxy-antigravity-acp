@@ -1,0 +1,33 @@
+{
+  "providers": {
+    "cpa-acp": {
+      "baseUrl": "https://your-cpa.example/v1",
+      "api": "openai-completions",
+      "apiKey": "${CPA_API_KEY}",
+      "models": [
+        {
+          "id": "antigravity-acp/gemini-3.8-flash",
+          "name": "ACP Gemini Flash",
+          "reasoning": false,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 65536,
+          "maxTokens": 8192,
+          "samplingParams": {
+            "max_tokens": null,
+            "max_completion_tokens": null
+          },
+          "compat": {
+            "supportsStore": false,
+            "supportsUsageInStreaming": false,
+            "supportsReasoningEffort": false,
+            "supportsStrictMode": false,
+            "supportsOpenAIGrammarTools": false
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,44 @@
+/upstream/
+/build/
+/vendor/
+/state/
+*.so
+*.h
+
+# Local credentials and runtime state
+/bin/
+/auth/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local deployment snapshots and validation artifacts
+/baseline-models.json
+/model-catalog.json
+/production-*.json
+/docs/*.json
+/docs/*.png
+/docs/*.jpg
+/docs/*.jpeg
+/progress.md
+/findings.md
+/task_plan.md
+
+# Credentials, exports and local backups
+/.ssh/
+/.gemini/
+*.bundle
+*.db
+*.sqlite*
+*.log
+*.bak
+*.backup
+*.tar.gz
+*.zip
+bridge-token
+
+# Private historical deployment notes and obsolete local harness
+/docs/
+/tests/local_integration.py

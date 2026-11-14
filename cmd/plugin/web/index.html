@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Antigravity ACP · 通道管理</title><link rel="icon" href="./logo.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css"><script type="module" src="./app.js"></script></head>
+<body><main>
+<header><div class="brand"><img src="./logo.svg" alt="" width="44" height="44"><div><p class="eyebrow">CPA / GEMINI 通道</p><h1>Antigravity ACP</h1></div></div><div class="header-actions"><span id="session-state" class="badge">未连接管理会话</span><button id="disconnect" class="quiet" hidden>断开</button></div></header>
+<p class="intro">在原有 CPA 接口中使用官方 ACP 通道，模型前缀为 <code>antigravity-acp/</code>。</p>
+<section id="login-panel" class="panel login"><div><h2>连接通道管理</h2><p>使用现有 CPA 管理密钥。它与聊天客户端的 API Key 不同，仅在当前页面保留。</p></div><form id="login-form"><label for="management-key">CPA 管理密钥</label><div class="input-row"><input id="management-key" type="password" autocomplete="off" placeholder="输入管理密钥" required><button type="submit" id="connect" class="primary">连接</button></div></form></section>
+<div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+<section class="metrics" aria-label="通道概况">
+<article class="metric"><p>桥接服务</p><strong id="bridge-state">待连接</strong><span id="bridge-detail">连接管理会话后查看</span></article>
+<article class="metric"><p>可用 Gemini 模型</p><strong id="model-count">—</strong><span id="catalog-time">尚未读取模型目录</span></article>
+<article class="metric"><p>处理中请求</p><strong id="active-count">—</strong><span>当前桥接服务的并发请求</span></article>
+<article class="metric"><p>插件版本</p><strong id="plugin-version">0.10.0</strong><span id="bridge-version">桥接版本待获取</span></article>
+</section>
+<section class="panel route-panel" id="request-route" aria-labelledby="route-title">
+<div class="section-head"><div><p class="eyebrow">REQUEST ROUTE</p><h2 id="route-title">请求路由</h2><p>查看当前通道状态、会话复用统计与实际请求记录。</p></div><div class="route-actions"><label class="route-auto"><input type="checkbox" id="route-auto" checked><span>每 5 秒自动刷新</span></label><span id="route-state" class="badge">等待状态</span><button id="refresh-route" class="quiet" disabled>刷新路由 ↻</button></div></div>
+<div class="route-context"><div class="route-endpoints"><span class="route-label">统一入口</span><code>/v1/chat/completions</code><code>/v1/responses</code></div><div class="route-account"><span class="route-label">当前账号</span><strong id="route-account">待获取</strong><span id="route-tier" class="muted"></span></div></div>
+<div class="route-summary" aria-label="请求累计统计"><div><span>请求总数</span><strong id="route-total">—</strong><small>聊天与 Agent 请求</small></div><div class="cache-summary"><span>缓存命中总数</span><strong id="route-hits">—</strong><small>成功复用 ACP 会话的请求</small></div><div><span>缓存命中率</span><strong id="route-hit-rate">—</strong><small>命中数 ÷ 请求总数</small></div></div><p class="route-caption" id="route-stats-since">统计自 Bridge 本次启动起累计；不含状态查询与模型目录请求。</p>
+<div class="route-stats" aria-label="桥接服务运行统计"><div><span>执行中 / 上限</span><strong id="route-active">—</strong><small>当前执行请求</small></div><div><span>等待中 / 队列</span><strong id="route-queued">—</strong><small id="route-queue-detail">排队状态待获取</small></div><div><span>保留会话</span><strong id="route-sessions">—</strong><small id="route-idle">空闲数量待获取</small></div><div><span>未命中 / 绕过</span><strong id="route-misses">—</strong><small>累计匹配结果</small></div></div>
+<div class="route-footer"><p>工具在客户端执行，结果沿原通道回传；匹配的连续请求复用 ACP 会话。</p><span id="route-checked">尚未读取状态</span></div><p class="route-caption" id="route-refresh-state" role="status">自动刷新每 5 秒；复用统计自桥接服务启动起累计。</p>
+<div class="recent-heading"><div><h3>最近请求</h3><p>进行中的请求优先展示，点击记录查看实际路由与会话匹配原因。</p></div><span id="recent-count" class="route-label">尚未读取</span></div>
+<div id="request-topology" class="request-topology" hidden></div>
+<div class="request-workspace">
+<div id="request-detail" class="request-inspector"><p class="request-empty">连接后显示实际请求流向。</p></div>
+<div class="request-log"><div class="request-log-head"><strong>请求动态</strong><button id="request-follow" class="quiet" aria-pressed="true">跟随最新</button></div><div id="request-dots" class="request-dots" aria-label="最近请求活动"></div><div id="recent-requests" class="request-list" aria-label="最近请求列表"><p class="request-empty">连接后显示最近请求。</p></div></div>
+</div>
+<p class="route-caption">显示运行中请求和本次启动后最近 20 条已结束请求。来源 IP 为入口代理转发的地址，未提供时显示未知。耗时从桥接收到请求开始，包含排队、会话准备与模型响应；不含客户端执行工具的时间。</p>
+</section>
+<section class="panel" id="accounts-panel"><div class="section-head"><div><h2>凭证与账号</h2><p>使用官方 Google OAuth 添加 Antigravity 登录，选择此通道使用的账号。</p></div><div class="actions"><button id="refresh-accounts" disabled>刷新账号</button><button id="add-account" class="primary" disabled>添加 OAuth 账号</button></div></div>
+<div id="accounts" class="account-list"><p class="empty">连接管理会话后查看账号。</p></div><p class="footnote">凭证由官方 CLI 保存在服务器，不在页面显示或下载。新账号需手动切换；切换只影响后续请求。已有登录会保留。配额按需查询，成功结果缓存 5 分钟；仅展示 Gemini 配额。</p>
+<div id="oauth-panel" class="oauth-panel" hidden><div class="section-head"><h3>添加 Antigravity 账号</h3><button id="oauth-close" class="quiet">收起</button></div><form id="oauth-start-form"><label for="account-label">账号备注</label><div class="input-row"><input id="account-label" maxlength="80" placeholder="例如：个人 Pro" required><button id="oauth-start" class="primary" type="submit">生成授权链接</button></div></form>
+<p id="oauth-status" class="footnote" role="status" aria-live="polite"></p><div id="oauth-authorize" hidden><p class="footnote">1. 在新标签页打开 Google 授权链接，选择要添加的账号。</p><div class="oauth-actions"><a id="oauth-link" class="button-link" target="_blank" rel="noopener noreferrer">打开 Google 授权</a><button id="oauth-copy">复制链接</button></div><p class="footnote">2. 授权后复制最终页面的完整地址或授权码。即使回调页面无法打开，也可以复制地址栏中的地址。</p><form id="oauth-complete-form"><label class="field-label" for="oauth-code">回调地址或授权码</label><div class="input-row"><input id="oauth-code" type="password" autocomplete="off" placeholder="粘贴本次授权的回调地址或授权码" required><button id="oauth-complete" class="primary" type="submit">完成登录</button></div></form></div><button id="oauth-cancel" class="quiet" hidden>取消本次登录</button></div></section>
+<section class="panel"><div class="section-head"><div><h2>模型目录</h2><p id="model-description">使用完整模型名称，在聊天客户端或 Codex CLI 中选择 ACP 通道。</p></div><div class="actions"><button id="refresh-status" disabled>刷新状态</button><button id="refresh-models" class="primary" disabled>更新模型目录</button></div></div>
+<div class="toolbar"><label class="search-label" for="model-search">查找模型</label><input id="model-search" type="search" placeholder="输入模型名称" disabled><span class="muted">更新目录只发现模型，不发送聊天请求</span></div>
+<div id="models" class="model-list"><p class="empty">连接后显示最近一次成功获取的模型目录。</p></div>
+<p id="catalog-error" class="inline-error" hidden></p><p class="footnote">目录来自当前官方 CLI 账号。若模型可用性发生变化，请在 CPA 插件列表重新加载插件，同步下游模型目录。</p>
+</section>
+<section class="panel"><h2>当前支持范围</h2><ul class="capabilities"><li><span class="check">✓</span><div><strong>普通文本聊天</strong><p>支持多轮历史、流式与非流式回复。</p></div></li><li><span class="check">✓</span><div><strong>请求取消</strong><p>客户端断开后，取消对应 ACP 会话。</p></div></li><li><span class="check">✓</span><div><strong>Codex CLI / Pi Agent</strong><p>支持 Responses 与 Chat Completions 的客户端工具调用、工具结果回传和连续多轮操作；工具在客户端运行。</p></div></li><li><span class="check">✓</span><div><strong>图片理解</strong><p>Chat Completions、Responses 与 Codex CLI 支持图片和多轮图片历史。接受 PNG、JPEG、WebP、GIF 的 Base64 或公开 HTTPS 地址；插件不限制图片张数；每张最多 8 MiB、合计最多 16 MiB，整个请求体最多 24 MiB。暂不支持音视频、文件上传、图片生成与托管搜索。</p></div></li><li><span class="neutral">—</span><div><strong>高级生成参数</strong><p>ACP 不应用采样参数、token 上限、思考强度与结构化输出设置；客户端附带这些生成参数时会静默忽略。消息、工具和会话协议仍会校验。</p></div></li></ul><div class="note">ACP 不提供此适配器所需的精确 token 用量，因此页面不显示推测的用量或费用。</div></section>
+<footer><span>Antigravity ACP · Gemini only</span><span id="updated-at">尚未检查服务状态</span></footer>
+</main></body></html>

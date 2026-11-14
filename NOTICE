@@ -1,0 +1,12 @@
+The native C ABI declarations follow router-for-me/CLIProxyAPI v8.0.69 examples.
+Their MIT license is retained in LICENSE-CPA.
+
+management-center/shared contains helpers derived from
+router-for-me/Cli-Proxy-API-Management-Center (MIT).
+The upstream license is retained in management-center/shared/LICENSE.
+
+Antigravity CLI is an external dependency distributed by Google.
+It is not included in this repository and remains subject to its own terms.
+
+No separate license has been declared for the original code in this repository.
+Third-party notices do not grant a license to unrelated original code.
