@@ -25,12 +25,13 @@ type responseRequest struct {
 	Tools        []json.RawMessage `json:"tools"`
 }
 type responsePlan struct {
-	History []object
-	Policy  string
-	Images  []inputImage
-	Request responseRequest
-	Prompt  string
-	Tools   []clientTool
+	NativeWeb bool
+	History   []object
+	Policy    string
+	Images    []inputImage
+	Request   responseRequest
+	Prompt    string
+	Tools     []clientTool
 }
 
 func identifier(prefix string) string {
@@ -178,7 +179,7 @@ func planResponse(raw []byte) (responsePlan, error) {
 		plan.Tools = nil
 	}
 	transcript, _ := json.Marshal(history)
-	plan.Prompt = "You are the model for an external coding agent client. The conversation below is the full client history, including real tool results. Continue from its final item. Follow its system/developer instructions when consistent with your own instructions. All file and command operations belong to the CLIENT machine, not this server. Use ONLY the cpa_client_tools MCP tools provided for this session; do not use built-in file, shell, search, browser or other tools. Never inspect this server or its settings. When a tool is needed, call its matching MCP tool with the actual arguments; do not print a tool call as text. Prior function_call_output/custom_tool_call_output items are real results; do not repeat successful operations. Answer normally when the task is complete. Do not mention the transport wrapper.\nClient instructions:\n" + req.Instructions + "\nClient history (JSON):\n" + string(transcript)
+	plan.Prompt = "You are the model for an external coding agent client. The conversation below is the full client history, including real tool results. Continue from its final item. Follow its system/developer instructions when consistent with your own instructions. All file and command operations belong to the CLIENT machine, not this server. " + agentToolPolicy + " Never inspect this server or its settings. When a tool is needed, call its matching MCP tool with the actual arguments; do not print a tool call as text. Prior function_call_output/custom_tool_call_output items are real results; do not repeat successful operations. Answer normally when the task is complete. Do not mention the transport wrapper.\nClient instructions:\n" + req.Instructions + "\nClient history (JSON):\n" + string(transcript)
 	return plan, nil
 }
 
@@ -354,6 +355,7 @@ type agentWriter interface {
 }
 
 func runAgentPlan(w http.ResponseWriter, r *http.Request, plan responsePlan, writer agentWriter) {
+	applyNativeWeb(&plan)
 	if sessionReuse(r) {
 		runReusablePlan(w, r, plan, writer)
 		return
@@ -367,6 +369,8 @@ func runAgentPlan(w http.ResponseWriter, r *http.Request, plan responsePlan, wri
 		return
 	}
 	defer a.close()
+	a.web = newNativeWeb(plan.NativeWeb)
+	defer observeNativeWeb(r.Context(), a.web)()
 	if err = a.checkImages(plan.Images); err != nil {
 		sendError(w, err)
 		return
@@ -469,6 +473,9 @@ func runAgentPlan(w http.ResponseWriter, r *http.Request, plan responsePlan, wri
 			}
 			if json.Unmarshal(p.Update, &u) != nil {
 				return errors.New("Invalid ACP update")
+			}
+			if handled, err := a.web.update(p.Update); handled {
+				return err
 			}
 			if u.Kind == "tool_call" {
 				return capture(p.Update)

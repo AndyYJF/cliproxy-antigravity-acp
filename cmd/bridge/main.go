@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-var bridgeVersion = "0.11.1"
+var bridgeVersion = "0.12.0"
 
 type object = map[string]any
 type rpcError struct {
@@ -41,6 +41,7 @@ type rpcMessage struct {
 	Error  *rpcError       `json:"error"`
 }
 type acp struct {
+	web              *nativeWebSession
 	closeCapable     bool
 	sessionCWD       string
 	imageCapable     bool
@@ -189,6 +190,15 @@ func (a *acp) call(ctx context.Context, method string, params any, update func(j
 						_ = json.Unmarshal(msg.Params, &permissionSession)
 						if permissionSession.SessionID != "" && permissionSession.SessionID != a.session {
 							_ = a.write(object{"jsonrpc": "2.0", "id": msg.ID, "result": object{"outcome": object{"outcome": "cancelled"}}})
+							continue
+						}
+						if result, handled, err := a.web.permission(msg.Params); handled {
+							if err != nil {
+								return nil, err
+							}
+							if err = a.write(object{"jsonrpc": "2.0", "id": msg.ID, "result": result}); err != nil {
+								return nil, err
+							}
 							continue
 						}
 						if a.permissionResult != nil {
@@ -390,7 +400,7 @@ func promptBody(raw []byte) (chatRequest, string, error) {
 		return bad("The last message must be a user message")
 	}
 	transcript, _ := json.Marshal(history)
-	prompt := "You are serving a chat with optional attached images. Answer the final user message using the conversation below as context. Follow the supplied system and developer instructions when consistent with your own instructions. Do not use tools, browse, read or modify files, or execute commands. Do not describe the JSON wrapper. The conversation is encoded as a JSON array:\n" + string(transcript)
+	prompt := "You are serving a chat with optional attached images. Answer the final user message using the conversation below as context. Follow the supplied system and developer instructions when consistent with your own instructions. " + chatToolPolicy + " Do not describe the JSON wrapper. The conversation is encoded as a JSON array:\n" + string(transcript)
 	return req, prompt, nil
 }
 func env(k, fallback string) string {
@@ -449,7 +459,11 @@ func chat(w http.ResponseWriter, r *http.Request) {
 		chatAgent(w, r, raw)
 		return
 	}
+	web := nativeWebEnabled()
 	req, prompt, err := promptBody(raw)
+	if web {
+		prompt = strings.Replace(prompt, chatToolPolicy, webToolPolicy, 1)
+	}
 	if err != nil {
 		sendError(w, err)
 		return
@@ -462,6 +476,7 @@ func chat(w http.ResponseWriter, r *http.Request) {
 		}
 		plan.Prompt = prompt
 		plan.Policy = "chat"
+		plan.NativeWeb = web
 		writer := &chatAgentWriter{w: w, stream: req.Stream, model: req.Model, id: identifier("chatcmpl-acp-"), created: time.Now().Unix()}
 		runReusablePlan(w, r, plan, writer)
 		return
@@ -473,6 +488,8 @@ func chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer a.close()
+	a.web = newNativeWeb(web)
+	defer observeNativeWeb(r.Context(), a.web)()
 	if err = a.checkImages(req.Images); err != nil {
 		sendError(w, err)
 		return
@@ -533,6 +550,13 @@ func chat(w http.ResponseWriter, r *http.Request) {
 		}
 		if p.SessionID != a.session {
 			return nil
+		}
+		var webUpdate struct {
+			Update json.RawMessage `json:"update"`
+		}
+		_ = json.Unmarshal(raw, &webUpdate)
+		if handled, err := a.web.update(webUpdate.Update); handled {
+			return err
 		}
 		if p.Update.Kind == "tool_call" {
 			return errors.New("Agent attempted a tool call; tools are disabled for this chat provider")
@@ -626,12 +650,17 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	if err = loadNativeWebSettings(env("HOME", "/home/acp")); err != nil {
+		log.Print("Bridge settings are unavailable")
+		return
+	}
 	accounts, err = newAccountManager(ctx, env("HOME", "/home/acp"))
 	if err != nil {
 		log.Print("Account manager is unavailable")
 		return
 	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /admin/settings", handleNativeWebSettings)
 	mux.HandleFunc("GET /admin/accounts", accounts.handle)
 	mux.HandleFunc("POST /admin/accounts/refresh", accounts.refreshDetails)
 	for _, path := range []string{"accounts/select", "accounts/rename", "accounts/delete", "oauth/start", "oauth/status", "oauth/complete", "oauth/cancel"} {
@@ -640,7 +669,7 @@ func main() {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		concurrency := admission.snapshot()
 		cache := liveSessions.stats()
-		sendJSON(w, 200, object{"status": "ok", "active_requests": active.Load(), "concurrency": concurrency, "version": bridgeVersion, "session_cache": cache, "request_stats": requestStatsSnapshot(), "recent_requests": recentRequestSnapshot()})
+		sendJSON(w, 200, object{"status": "ok", "native_web": nativeWebEnabled(), "active_requests": active.Load(), "concurrency": concurrency, "version": bridgeVersion, "session_cache": cache, "request_stats": requestStatsSnapshot(), "recent_requests": recentRequestSnapshot()})
 	})
 	mux.HandleFunc("GET /v1/models", withAdmission(modelList))
 	mux.HandleFunc("POST /v1/chat/completions", observeRequest(withAdmission(chat)))

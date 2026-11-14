@@ -7,7 +7,7 @@ let statusRunning = false, catalogFingerprint = '', requestFingerprint = '';
 const channel = 'antigravity-acp-management-v1';
 const pending = new Map();
 let sequence = 0;
-const accountActions={'/accounts':'accounts','/accounts/refresh':'refresh-account','/accounts/select':'select-account','/accounts/rename':'rename-account','/accounts/delete':'delete-account','/oauth/start':'oauth-start','/oauth/status':'oauth-status','/oauth/complete':'oauth-complete','/oauth/cancel':'oauth-cancel'};
+const accountActions={'/settings':'save-settings','/accounts':'accounts','/accounts/refresh':'refresh-account','/accounts/select':'select-account','/accounts/rename':'rename-account','/accounts/delete':'delete-account','/oauth/start':'oauth-start','/oauth/status':'oauth-status','/oauth/complete':'oauth-complete','/oauth/cancel':'oauth-cancel'};
 function relay(path,body) {
  const action = path === '/status' ? 'status' : path === '/models/refresh' ? 'refresh-models' : accountActions[path];
  if (!action) return Promise.reject(new Error('不支持的管理操作。'));
@@ -26,7 +26,7 @@ window.addEventListener('message',event=>{
 });
 const names = {'gemini-4-argon':'Gemini 4 Argon','gemini-4-hydrogen':'Gemini 4 Hydrogen','gemini-pro-orchestrator-g1-pro':'Gemini Pro Orchestrator','gemini-3.8-flash':'Gemini 3.8 Flash'};
 function notice(text, error = false) { $('notice').textContent=text; $('notice').hidden=!text; $('notice').className='notice'+(error?' error':''); }
-function controls() { for (const id of ['refresh-status','refresh-route','refresh-models','refresh-accounts','add-account']) $(id).disabled=(!managementKey&&!embedded)||busy; for(const button of document.querySelectorAll('.account-actions button,.account-edit button'))button.disabled=busy||button.dataset.locked==='true'; $('connect').disabled=busy; $('disconnect').disabled=busy; $('model-search').disabled=!managementKey&&!embedded; }
+function controls() { $('native-web-toggle').disabled=(!managementKey&&!embedded)||busy||!nativeWebOnline; for (const id of ['refresh-status','refresh-route','refresh-models','refresh-accounts','add-account']) $(id).disabled=(!managementKey&&!embedded)||busy; for(const button of document.querySelectorAll('.account-actions button,.account-edit button'))button.disabled=busy||button.dataset.locked==='true'; $('connect').disabled=busy; $('disconnect').disabled=busy; $('model-search').disabled=!managementKey&&!embedded; }
 function clock(value) { return value ? new Date(value).toLocaleString('zh-CN',{hour12:false}) : '尚未获取'; }
 function renderCatalog(data) {
  const fingerprint=JSON.stringify(data);if(fingerprint===catalogFingerprint)return;catalogFingerprint=fingerprint;
@@ -51,6 +51,7 @@ async function request(path,method='GET',body) {
  }catch(error){if(error.name==='AbortError')throw new Error('请求超时，请检查服务状态后重试。');throw error;}finally{clearTimeout(timer);}
 }
 function renderRoute(data) {
+ renderNativeWeb(data?.bridge);
  const bridge=data?.bridge, online=bridge?.online, cache=online?bridge.session_cache:null;
  $('route-state').textContent=!data?'等待状态':online?(bridge.active_requests>0?'请求处理中':'通道可达'):'桥接不可达';
  $('route-state').className='badge'+(online?' connected':'');
@@ -75,6 +76,26 @@ function renderRouteAccount(data) {
  $('route-account').textContent=account?(account.email||account.label):data?'未选择账号':'待获取';
  $('route-tier').textContent=account?.details?.tier?.name||'';
 }
+
+let nativeWebOnline=false,nativeWebValue=false;
+function renderNativeWeb(bridge){
+ nativeWebOnline=!!bridge?.online;nativeWebValue=!!bridge?.native_web;
+ $('native-web-toggle').checked=nativeWebValue;
+ $('native-web-state').textContent=!nativeWebOnline?'待连接':nativeWebValue?'已开启':'已关闭';
+ controls();
+}
+$('native-web-toggle').addEventListener('change',()=>{
+ const enabled=$('native-web-toggle').checked;
+ action(async()=>{
+  try{
+   const data=await request('/settings','POST',{native_web:enabled});
+   nativeWebValue=data.native_web;
+   $('native-web-state').textContent=nativeWebValue?'已开启':'已关闭';
+   notice(nativeWebValue?'原生联网搜索已开启，对后续请求生效。':'原生联网搜索已关闭，对后续请求生效。');
+  }finally{$('native-web-toggle').checked=nativeWebValue;}
+ });
+});
+
 $('refresh-route').addEventListener('click',()=>action(status));
 async function status(refreshAccounts=true) {
  if(statusRunning)return;
@@ -155,7 +176,7 @@ function paintRequestSelection(){
   const wire=()=>{const el=element('span','flow-wire');el.setAttribute('aria-hidden','true');return el;};
   flow.append(source,wire(),hub,wire(),target);topology.append(flow);
   const verdict=element('div','request-verdict');verdict.dataset.cache=item.session_cache;verdict.append(element('strong','',item.session_cache==='hit'?'为什么复用会话':item.session_cache==='not_checked'?'匹配进度':'为什么未复用会话'),element('p','',reasonText(item)));root.append(verdict);
-  const facts=element('dl','request-facts');for(const [label,value] of [['开始时间',clock(item.started_at)],['总耗时',''],['排队耗时',''],['接口',item.endpoint],['ACP 会话',item.session_id?item.session_id.slice(-12):'尚未建立'],['请求 ID',item.id.slice(-12)],['缓存状态',cacheNames[item.session_cache]||'未知'],['ACP 进程',processNames[item.process_cache]||'未记录'],['会话准备',item.process_cache?(Number(item.setup_ms||0)/1000).toFixed(3)+' 秒':'未记录']]){const cell=element('div','');cell.append(element('dt','',label),element('dd','',value));facts.append(cell);}root.append(facts);
+  const facts=element('dl','request-facts');for(const [label,value] of [['开始时间',clock(item.started_at)],['总耗时',''],['排队耗时',''],['接口',item.endpoint],['ACP 会话',item.session_id?item.session_id.slice(-12):'尚未建立'],['请求 ID',item.id.slice(-12)],['缓存状态',cacheNames[item.session_cache]||'未知'],['ACP 进程',processNames[item.process_cache]||'未记录'],['联网搜索',item.native_web?'开启 · 搜索 '+(item.web_searches||0)+' 次 / 读取 '+(item.web_reads||0)+' 次':'关闭'],['会话准备',item.process_cache?(Number(item.setup_ms||0)/1000).toFixed(3)+' 秒':'未记录']]){const cell=element('div','');cell.append(element('dt','',label),element('dd','',value));facts.append(cell);}root.append(facts);
  }
  const facts=$('request-detail').querySelectorAll('dd');facts[1].textContent=duration(item);facts[2].textContent=(Number(item.queue_ms||0)/1000).toFixed(2)+' 秒';
 }

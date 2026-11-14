@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-var pluginVersion = "0.11.1"
+var pluginVersion = "0.12.0"
+
 const resourceBase = "/v0/resource/plugins/antigravity-acp"
 const managementBase = "/v0/management/plugins/antigravity-acp"
 
@@ -55,6 +56,7 @@ func snapshotCatalog() catalogSnapshot {
 }
 
 var accountRoutes = map[string]string{
+	"/settings": "POST",
 	"/accounts": "GET", "/accounts/refresh": "POST", "/accounts/select": "POST", "/accounts/rename": "POST", "/accounts/delete": "POST", "/oauth/start": "POST", "/oauth/status": "POST", "/oauth/complete": "POST", "/oauth/cancel": "POST",
 }
 
@@ -173,7 +175,11 @@ func handleManagement(raw []byte) (any, error) {
 		body, err := readBridge(req.HostCallbackID, "/healthz", 8*time.Second)
 		if err == nil {
 			var health struct {
+				NativeWeb      bool `json:"native_web"`
 				RecentRequests []struct {
+					NativeWeb          bool     `json:"native_web"`
+					WebSearches        int      `json:"web_searches"`
+					WebReads           int      `json:"web_reads"`
 					ProcessCache       string   `json:"process_cache,omitempty"`
 					SetupMS            float64  `json:"setup_ms"`
 					ID                 string   `json:"id"`
@@ -218,7 +224,7 @@ func handleManagement(raw []byte) (any, error) {
 				} `json:"session_cache"`
 			}
 			if json.Unmarshal(body, &health) == nil && health.Status == "ok" {
-				bridge = object{"online": true, "active_requests": health.Active, "version": health.Version, "session_cache": health.SessionCache, "request_stats": health.RequestStats, "recent_requests": health.RecentRequests, "concurrency": health.Concurrency}
+				bridge = object{"online": true, "native_web": health.NativeWeb, "active_requests": health.Active, "version": health.Version, "session_cache": health.SessionCache, "request_stats": health.RequestStats, "recent_requests": health.RecentRequests, "concurrency": health.Concurrency}
 			} else {
 				bridge["message"] = "桥接服务返回了无法识别的状态，请检查服务日志。"
 			}

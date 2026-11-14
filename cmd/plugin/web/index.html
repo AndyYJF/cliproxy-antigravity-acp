@@ -9,7 +9,7 @@
 <article class="metric"><p>桥接服务</p><strong id="bridge-state">待连接</strong><span id="bridge-detail">连接管理会话后查看</span></article>
 <article class="metric"><p>可用 Gemini 模型</p><strong id="model-count">—</strong><span id="catalog-time">尚未读取模型目录</span></article>
 <article class="metric"><p>处理中请求</p><strong id="active-count">—</strong><span>当前桥接服务的并发请求</span></article>
-<article class="metric"><p>插件版本</p><strong id="plugin-version">0.10.0</strong><span id="bridge-version">桥接版本待获取</span></article>
+<article class="metric"><p>插件版本</p><strong id="plugin-version">0.12.0</strong><span id="bridge-version">桥接版本待获取</span></article>
 </section>
 <section class="panel route-panel" id="request-route" aria-labelledby="route-title">
 <div class="section-head"><div><p class="eyebrow">REQUEST ROUTE</p><h2 id="route-title">请求路由</h2><p>查看当前通道状态、会话复用统计与实际请求记录。</p></div><div class="route-actions"><label class="route-auto"><input type="checkbox" id="route-auto" checked><span>每 5 秒自动刷新</span></label><span id="route-state" class="badge">等待状态</span><button id="refresh-route" class="quiet" disabled>刷新路由 ↻</button></div></div>
@@ -25,6 +25,7 @@
 </div>
 <p class="route-caption">显示运行中请求和本次启动后最近 20 条已结束请求。来源 IP 为入口代理转发的地址，未提供时显示未知。耗时从桥接收到请求开始，包含排队、会话准备与模型响应；不含客户端执行工具的时间。</p>
 </section>
+<section class="panel native-web-panel" aria-labelledby="native-web-title"><div class="section-head"><div><p class="eyebrow">NATIVE WEB</p><h2 id="native-web-title">原生联网搜索</h2><p>由官方 Antigravity CLI 搜索网页并整理来源，聊天与 Agent 共用此设置。</p></div><label class="native-web-switch"><input id="native-web-toggle" type="checkbox" role="switch" aria-labelledby="native-web-title" disabled><span class="native-web-track" aria-hidden="true"></span><strong id="native-web-state">待连接</strong></label></div><div class="native-web-tools"><span><strong>search_web</strong> 联网搜索</span><span><strong>read_url_content</strong> 读取适配已保留</span></div><p class="footnote" id="native-web-hint">保存后对新请求生效，进行中的请求继续使用原设置。当前已验证的 agy 1.5.7 ACP 未提供网页读取工具；不会用搜索摘要冒充网页读取，也不会通过其他服务抓取。</p></section>
 <section class="panel" id="accounts-panel"><div class="section-head"><div><h2>凭证与账号</h2><p>使用官方 Google OAuth 添加 Antigravity 登录，选择此通道使用的账号。</p></div><div class="actions"><button id="refresh-accounts" disabled>刷新账号</button><button id="add-account" class="primary" disabled>添加 OAuth 账号</button></div></div>
 <div id="accounts" class="account-list"><p class="empty">连接管理会话后查看账号。</p></div><p class="footnote">凭证由官方 CLI 保存在服务器，不在页面显示或下载。新账号需手动切换；切换只影响后续请求。已有登录会保留。配额按需查询，成功结果缓存 5 分钟；仅展示 Gemini 配额。</p>
 <div id="oauth-panel" class="oauth-panel" hidden><div class="section-head"><h3>添加 Antigravity 账号</h3><button id="oauth-close" class="quiet">收起</button></div><form id="oauth-start-form"><label for="account-label">账号备注</label><div class="input-row"><input id="account-label" maxlength="80" placeholder="例如：个人 Pro" required><button id="oauth-start" class="primary" type="submit">生成授权链接</button></div></form>

@@ -72,6 +72,19 @@ func fakeACP() {
 			}
 			promptCount++
 			prompt := string(msg.Params)
+			if strings.Contains(prompt, "__NATIVE_WEB__") {
+				for _, name := range []string{"search_web", "read_url_content"} {
+					write(object{"jsonrpc": "2.0", "method": "session/update", "params": object{"sessionId": sessionID, "update": object{"sessionUpdate": "tool_call", "toolCallId": name + "-1", "name": name, "title": "Native web operation"}}})
+					if name == "read_url_content" {
+						write(object{"jsonrpc": "2.0", "id": "web-permission", "method": "session/request_permission", "params": object{"sessionId": sessionID, "toolCall": object{"toolCallId": name + "-1", "name": name}, "options": []object{{"optionId": "all", "kind": "allow_always"}, {"optionId": "once", "kind": "allow_once"}}}})
+						if !scan.Scan() || !strings.Contains(scan.Text(), `"optionId":"once"`) {
+							return
+						}
+					}
+					write(object{"jsonrpc": "2.0", "method": "session/update", "params": object{"sessionId": sessionID, "update": object{"sessionUpdate": "tool_call_update", "toolCallId": name + "-1", "status": "completed"}}})
+				}
+			}
+
 			if strings.Contains(prompt, "__REUSE_TOOL__") || strings.Contains(prompt, "__REUSE_CUSTOM__") {
 				write(object{"jsonrpc": "2.0", "method": "session/update", "params": object{"sessionId": sessionID, "update": object{"sessionUpdate": "tool_call", "title": "Run mcp_cpa_client_tools_client_tool_0", "rawInput": object{"value": "fixture"}}}})
 				args := json.RawMessage(`{"value":"fixture"}`)

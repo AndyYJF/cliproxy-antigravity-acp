@@ -15,6 +15,9 @@ import (
 const recentRequestLimit = 20
 
 type requestRecord struct {
+	NativeWeb          bool     `json:"native_web"`
+	WebSearches        int      `json:"web_searches"`
+	WebReads           int      `json:"web_reads"`
 	ProcessCache       string   `json:"process_cache,omitempty"`
 	SetupMS            float64  `json:"setup_ms"`
 	ID                 string   `json:"id"`

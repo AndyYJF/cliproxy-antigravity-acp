@@ -535,6 +535,7 @@ func (s *liveSession) start(ctx context.Context, plan responsePlan) error {
 			return nil, errors.New("Client MCP permission has no allow_once option")
 		}
 	}
+	a.web = newNativeWeb(plan.NativeWeb)
 	session, err := a.newSessionIn(ctx, cwd, servers)
 	if err != nil {
 		return err
@@ -554,6 +555,13 @@ func (s *liveSession) prompt(blocks []object, tools []clientTool) {
 			}
 			if json.Unmarshal(raw, &p) != nil || p.SessionID != s.a.session {
 				return nil
+			}
+			var webUpdate struct {
+				Update json.RawMessage `json:"update"`
+			}
+			_ = json.Unmarshal(raw, &webUpdate)
+			if handled, err := s.a.web.update(webUpdate.Update); handled {
+				return err
 			}
 			switch p.Update.SessionUpdate {
 			case "tool_call":
@@ -588,7 +596,7 @@ func runReusablePlan(w http.ResponseWriter, r *http.Request, plan responsePlan, 
 	for _, tool := range plan.Tools {
 		names = append(names, tool.Namespace+"."+tool.OriginalName)
 	}
-	scopeValues := []any{r.Header.Get("X-ACP-Caller-Scope"), r.URL.Path, home, plan.Request.Model, plan.Request.Instructions, plan.Tools, names, plan.Policy}
+	scopeValues := []any{r.Header.Get("X-ACP-Caller-Scope"), r.URL.Path, home, plan.Request.Model, plan.Request.Instructions, plan.Tools, names, object{"client": plan.Policy, "native_web": plan.NativeWeb}}
 	scope := digest(scopeValues)
 	parts := make([]string, len(scopeValues))
 	for i, value := range scopeValues {
@@ -629,6 +637,7 @@ func runReusablePlan(w http.ResponseWriter, r *http.Request, plan responsePlan, 
 			return
 		}
 	}
+	defer observeNativeWeb(r.Context(), s.a.web)()
 	if err = s.a.checkImages(plan.Images); err != nil {
 		sendError(w, err)
 		return

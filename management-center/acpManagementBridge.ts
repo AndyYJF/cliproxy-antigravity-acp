@@ -11,6 +11,7 @@ export function resolveACPAction(action: unknown) {
     };
   }
   const routes: Record<string, { method: 'GET' | 'POST'; path: string }> = {
+    'save-settings': { method: 'POST', path: '/settings' },
     accounts: { method: 'GET', path: '/accounts' },
     'refresh-account': { method: 'POST', path: '/accounts/refresh' },
     'select-account': { method: 'POST', path: '/accounts/select' },
@@ -44,6 +45,10 @@ export function resolveACPPayload(action: unknown, value: unknown) {
   if (action === 'status' || action === 'refresh-models' || action === 'accounts') return undefined;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
+  if (action === 'save-settings') {
+    if (Object.keys(input).length !== 1 || typeof input.native_web !== 'boolean') return null;
+    return { native_web: input.native_web };
+  }
   const fields =
     action === 'oauth-start'
       ? ['label']

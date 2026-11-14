@@ -34,3 +34,11 @@ test('account actions accept only their bounded payload', () => {
  expect(resolveACPPayload('select-account',{id:'test',url:'https://evil.test'})).toBeNull();
  expect(resolveACPPayload('oauth-status',{})).toEqual({});
 });
+
+test('native web settings accepts only a boolean switch', () => {
+ expect(resolveACPAction('save-settings')?.path).toEndWith('/settings');
+ expect(resolveACPPayload('save-settings',{native_web:true})).toEqual({native_web:true});
+ expect(resolveACPPayload('save-settings',{native_web:false})).toEqual({native_web:false});
+ expect(resolveACPPayload('save-settings',{native_web:'true'})).toBeNull();
+ expect(resolveACPPayload('save-settings',{native_web:true,url:'https://example.com'})).toBeNull();
+});

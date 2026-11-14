@@ -327,3 +327,15 @@ button.danger { color: var(--error); }
 @media(prefers-reduced-motion:reduce) { .request-topology .flow-wire::after,.request-topology .flow-status-dot,.request-dot { animation:none!important; } }
 
 @media(max-width:520px) { .route-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }.route-summary>div:last-child { grid-column:1/-1; }.route-summary strong { font-size:28px; } }
+
+.native-web-switch{display:flex;align-items:center;gap:12px;cursor:pointer;position:relative;flex-shrink:0}
+.native-web-switch input{position:absolute;opacity:0;width:44px;height:26px;margin:0}
+.native-web-track{display:block;width:44px;height:26px;border-radius:18px;background:var(--border-hover);transition:background .2s}
+.native-web-track:before{content:"";display:block;width:20px;height:20px;border-radius:50%;background:var(--bg);margin:3px;box-shadow:var(--shadow);transition:transform .2s}
+.native-web-switch input:checked+.native-web-track{background:var(--success)}
+.native-web-switch input:checked+.native-web-track:before{transform:translateX(18px)}
+.native-web-switch input:focus-visible+.native-web-track{outline:2px solid var(--primary);outline-offset:3px}
+.native-web-switch:has(input:disabled){opacity:.55;cursor:default}
+.native-web-tools{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+.native-web-tools span{padding:8px 12px;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:13px}
+.native-web-tools strong{font-family:var(--mono);font-weight:500;color:var(--text);margin-right:5px}
