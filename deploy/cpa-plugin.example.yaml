@@ -9,4 +9,4 @@ plugins:
       token_file: /run/antigravity-acp-token
       cpa_config_file: /CLIProxyAPI/config.yaml
       store:
-        version: 0.13.0
+        version: 0.13.1

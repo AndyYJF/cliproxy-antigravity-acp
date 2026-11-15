@@ -44,7 +44,7 @@ jobs:
           tag=$(python3 scripts/bump-cpa-release.py)
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add internal/cpacloak go.mod go.sum cmd/plugin/management.go cmd/plugin/web/index.html README.md CHANGELOG.md deploy/cpa-plugin.example.yaml
+          git add internal/cpacloak go.mod go.sum cmd/plugin/management.go cmd/plugin/web/index.html README.md CHANGELOG.md compose.yaml deploy/cpa-plugin.example.yaml
           git commit -m "chore: sync official CPA prompt processing ($tag)"
           git tag -a "$tag" -m "Automatic CPA prompt update $tag"
           git push --atomic origin HEAD:main "$tag"

@@ -54,7 +54,7 @@ def main():
     }
     previous_path = DEST / "upstream.json"
     if previous_path.exists():
-        previous = json.loads(previous_path.read_text())
+        previous = json.loads(previous_path.read_text(encoding="utf-8"))
         if all(previous.get(k) == manifest[k] for k in ("sources", "rule_sha256", "dependencies")):
             print("CPA " + tag + ": matcher unchanged")
             return

@@ -4,9 +4,9 @@ import json
 import pathlib
 import re
 root = pathlib.Path(__file__).resolve().parent.parent
-data = json.loads((root / "internal/cpacloak/upstream.json").read_text())
+data = json.loads((root / "internal/cpacloak/upstream.json").read_text(encoding="utf-8"))
 path = root / "go.mod"
-text = path.read_text()
+text = path.read_text(encoding="utf-8")
 for name, version in data["dependencies"].items():
     pattern = r"(?m)^(\s*(?:require\s+)?" + re.escape(name) + r")\s+\S+"
     if re.search(pattern, text):

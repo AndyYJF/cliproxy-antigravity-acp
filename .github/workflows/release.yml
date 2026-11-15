@@ -61,7 +61,7 @@ jobs:
             cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
           Linux amd64 · Go 1.26 / Debian bookworm
 
-AGV 提示词算法跟随官方 CPA 稳定版，具体 tag/commit 见 auto-update.json。
+          AGV 提示词算法跟随官方 CPA 稳定版，具体 tag/commit 见 auto-update.json。
 
           - **cliproxy-antigravity-acp_*_linux_amd64.tar.gz**：完整部署包，包含插件、Bridge、Dockerfile、Compose 和部署说明。
           - **antigravity-acp_*_linux_amd64.zip**：CPA 插件包。
