@@ -9,7 +9,7 @@ const pending = new Map();
 let sequence = 0;
 const accountActions={'/settings':'save-settings','/accounts':'accounts','/accounts/refresh':'refresh-account','/accounts/select':'select-account','/accounts/rename':'rename-account','/accounts/delete':'delete-account','/oauth/start':'oauth-start','/oauth/status':'oauth-status','/oauth/complete':'oauth-complete','/oauth/cancel':'oauth-cancel'};
 function relay(path,body) {
- const action = path === '/status' ? 'status' : path === '/models/refresh' ? 'refresh-models' : accountActions[path];
+ const action = path === '/prompt-rules' ? (body===undefined?'prompt-rules':'save-prompt-rules') : path === '/status' ? 'status' : path === '/models/refresh' ? 'refresh-models' : accountActions[path];
  if (!action) return Promise.reject(new Error('不支持的管理操作。'));
  return new Promise((resolve,reject)=>{
   const id=String(++sequence);
@@ -26,7 +26,7 @@ window.addEventListener('message',event=>{
 });
 const names = {'gemini-4-argon':'Gemini 4 Argon','gemini-4-hydrogen':'Gemini 4 Hydrogen','gemini-pro-orchestrator-g1-pro':'Gemini Pro Orchestrator','gemini-3.8-flash':'Gemini 3.8 Flash'};
 function notice(text, error = false) { $('notice').textContent=text; $('notice').hidden=!text; $('notice').className='notice'+(error?' error':''); }
-function controls() { $('native-web-toggle').disabled=(!managementKey&&!embedded)||busy||!nativeWebOnline; for (const id of ['refresh-status','refresh-route','refresh-models','refresh-accounts','add-account']) $(id).disabled=(!managementKey&&!embedded)||busy; for(const button of document.querySelectorAll('.account-actions button,.account-edit button'))button.disabled=busy||button.dataset.locked==='true'; $('connect').disabled=busy; $('disconnect').disabled=busy; $('model-search').disabled=!managementKey&&!embedded; }
+function controls() { promptControls(); $('native-web-toggle').disabled=(!managementKey&&!embedded)||busy||!nativeWebOnline; for (const id of ['refresh-status','refresh-route','refresh-models','refresh-accounts','add-account']) $(id).disabled=(!managementKey&&!embedded)||busy; for(const button of document.querySelectorAll('.account-actions button,.account-edit button'))button.disabled=busy||button.dataset.locked==='true'; $('connect').disabled=busy; $('disconnect').disabled=busy; $('model-search').disabled=!managementKey&&!embedded; }
 function clock(value) { return value ? new Date(value).toLocaleString('zh-CN',{hour12:false}) : '尚未获取'; }
 function renderCatalog(data) {
  const fingerprint=JSON.stringify(data);if(fingerprint===catalogFingerprint)return;catalogFingerprint=fingerprint;
@@ -51,6 +51,7 @@ async function request(path,method='GET',body) {
  }catch(error){if(error.name==='AbortError')throw new Error('请求超时，请检查服务状态后重试。');throw error;}finally{clearTimeout(timer);}
 }
 function renderRoute(data) {
+ renderPromptStatus(data?.prompt);
  renderNativeWeb(data?.bridge);
  const bridge=data?.bridge, online=bridge?.online, cache=online?bridge.session_cache:null;
  $('route-state').textContent=!data?'等待状态':online?(bridge.active_requests>0?'请求处理中':'通道可达'):'桥接不可达';
@@ -104,7 +105,7 @@ async function status(refreshAccounts=true) {
  const data=await request('/status');if(!managementKey&&!embedded)return;
  $('login-panel').hidden=true;$('disconnect').hidden=embedded;$('session-state').textContent=embedded?'已连接 CPA 主页面':'管理会话已连接';$('session-state').className='badge connected';
  const online=data.bridge.online;$('bridge-state').textContent=online?'运行中':'无法连接';$('bridge-state').className=online?'good':'bad';$('bridge-detail').textContent=online?'内部连接正常':data.bridge.message;
- $('active-count').textContent=online?data.bridge.active_requests:'—';$('plugin-version').textContent=data.plugin_version;$('bridge-version').textContent=online?'桥接版本 '+data.bridge.version:'桥接版本不可用';$('updated-at').textContent='状态检查于 '+clock(data.checked_at);renderCatalog(data.catalog);renderRoute(data);if(refreshAccounts)await loadAccounts();return data;
+ $('active-count').textContent=online?data.bridge.active_requests:'—';$('plugin-version').textContent=data.plugin_version;$('bridge-version').textContent=online?'桥接版本 '+data.bridge.version:'桥接版本不可用';$('updated-at').textContent='状态检查于 '+clock(data.checked_at);renderCatalog(data.catalog);renderRoute(data);if(refreshAccounts){await loadAccounts();if(!rulesLoaded)await loadRules();}return data;
  } finally {statusRunning=false;}
 }
 async function pollRoute() {
@@ -181,7 +182,7 @@ function paintRequestSelection(){
  const facts=$('request-detail').querySelectorAll('dd');facts[1].textContent=duration(item);facts[2].textContent=(Number(item.queue_ms||0)/1000).toFixed(2)+' 秒';
 }
 
-function disconnect(){renderRoute();renderRouteAccount();clearTimeout(oauthTimer);oauthJob=null;$('accounts').replaceChildren();$('oauth-panel').hidden=true;$('oauth-code').value='';managementKey='';$('management-key').value='';$('login-panel').hidden=false;$('disconnect').hidden=true;$('session-state').textContent='未连接管理会话';$('session-state').className='badge';$('bridge-state').textContent='待连接';$('bridge-state').className='';$('bridge-detail').textContent='连接管理会话后查看';$('active-count').textContent='—';$('bridge-version').textContent='桥接版本待获取';$('updated-at').textContent='尚未检查服务状态';renderCatalog({models:[]});controls();}
+function disconnect(){rulesLoaded=false;rulesEditable=false;rulesDirty=false;rulesRevisionValue='';$('rule-words').value='';$('rule-replacements').replaceChildren();$('rule-patterns').replaceChildren();$('rules-state').textContent='待连接';$('rules-save-state').textContent='连接后加载共享规则';renderRoute();renderRouteAccount();clearTimeout(oauthTimer);oauthJob=null;$('accounts').replaceChildren();$('oauth-panel').hidden=true;$('oauth-code').value='';managementKey='';$('management-key').value='';$('login-panel').hidden=false;$('disconnect').hidden=true;$('session-state').textContent='未连接管理会话';$('session-state').className='badge';$('bridge-state').textContent='待连接';$('bridge-state').className='';$('bridge-detail').textContent='连接管理会话后查看';$('active-count').textContent='—';$('bridge-version').textContent='桥接版本待获取';$('updated-at').textContent='尚未检查服务状态';renderCatalog({models:[]});controls();}
 async function action(fn){if(busy)return;busy=true;controls();notice('');try{await fn();}catch(e){notice(e.message||'请求失败，请稍后重试。',true);}finally{busy=false;controls();}}
 $('login-form').addEventListener('submit',e=>{e.preventDefault();action(async()=>{managementKey=$('management-key').value.trim();if(!managementKey)throw new Error('请输入 CPA 管理密钥。');try{await status();$('management-key').value='';}catch(e){disconnect();throw e;}});});
 $('disconnect').addEventListener('click',()=>{disconnect();notice('管理会话已断开。');});
@@ -270,3 +271,81 @@ $('oauth-start-form').addEventListener('submit',e=>{e.preventDefault();action(as
 $('oauth-complete-form').addEventListener('submit',e=>{e.preventDefault();action(async()=>{const code=$('oauth-code').value;$('oauth-code').value='';renderOAuth(await request('/oauth/complete','POST',{id:oauthJob.id,code}));});});
 $('oauth-cancel').addEventListener('click',()=>action(async()=>{renderOAuth(await request('/oauth/cancel','POST',{id:oauthJob.id}));$('oauth-code').value='';}));
 $('oauth-copy').addEventListener('click',()=>copy($('oauth-link').href,$('oauth-copy')));
+
+let rulesLoaded=false, rulesEditable=false, rulesDirty=false, rulesRevisionValue='';
+function promptControls(){
+ const connected=!!managementKey||embedded;
+ $('rules-editor').disabled=!connected||busy||!rulesEditable;
+ $('reload-rules').disabled=!connected||busy;
+ $('save-rules').disabled=!connected||busy||!rulesEditable||!rulesDirty;
+}
+const updateLabels={checking:'正在检查',current:'已是最新版',updated:'升级成功',busy:'请求繁忙，等待空闲',rolled_back:'升级失败，已回滚',failed:'检查或升级失败',disabled:'插件已停用',manual_release:'新版需要手动升级'};
+function renderPromptStatus(data){
+ $('prompt-cpa-version').textContent=data?.cpa_version||'—';
+ $('prompt-cpa-commit').textContent=data?.cpa_commit?data.cpa_commit.slice(0,12):'算法版本待获取';
+ const wrapper=data?.updater, current=wrapper?.snapshot, last=current?.last_update;
+ $('update-state').textContent=!current?'暂无记录':current.enabled===false?'定时检查未启用':current.enabled===true?'自动检查已启用':'已接入更新器';
+ $('update-state').className='badge'+(current?.enabled?' connected':'');
+ $('update-checked').textContent=current?.checked_at?clock(current.checked_at):'尚未检查';
+ $('update-result').textContent=current?(updateLabels[current.status]||current.status):'—';
+ $('update-result').className=['failed','rolled_back'].includes(current?.status)?'bad':'';
+ $('update-last-time').textContent=last?.checked_at?clock(last.checked_at):'尚无记录';
+ $('update-last-result').textContent=last?last.status==='rolled_back'?'回滚至 '+last.version:(last.previous_version?last.previous_version+' → ':'')+last.version+' · 升级成功':'尚无升级记录';
+ $('update-message').textContent=current?.error||wrapper?.message||(current?.available?'发现版本 '+current.available+'。':'上游每 6 小时检查；服务器约每 30 分钟检查，空闲 30 秒后热升级。')+(current?' 启用状态来自最近一次检查。':'');
+}
+function markRulesDirty(){
+ rulesDirty=true;$('rules-save-state').textContent='有未保存的更改';
+ $('words-count').textContent=$('rule-words').value.split(/\r?\n/).filter(x=>x.trim()).length+' 条';
+ promptControls();
+}
+function addRuleRow(kind,first='',second=''){
+ const root=$(kind==='pattern'?'rule-patterns':'rule-replacements');
+ root.querySelector('.rule-empty')?.remove();
+ const row=element('div','rule-row'), head=element('div','rule-row-head');
+ head.append(element('span','',kind==='pattern'?'正则规则':'文本替换'));
+ const actions=element('div','rule-row-actions');
+ if(kind==='pattern')for(const [name,direction] of [['上移',-1],['下移',1]]){
+  const button=element('button','quiet',name);button.type='button';
+  button.addEventListener('click',()=>{const sibling=direction<0?row.previousElementSibling:row.nextElementSibling;if(!sibling)return;root.insertBefore(direction<0?row:sibling,direction<0?sibling:row);markRulesDirty();});
+  actions.append(button);
+ }
+ const remove=element('button','quiet','删除');remove.type='button';remove.addEventListener('click',()=>{row.remove();markRulesDirty();});actions.append(remove);head.append(actions);
+ const fields=element('div','rule-row-fields');
+ for(const [index,labelText,value] of [[0,kind==='pattern'?'匹配正则':'原始文本',first],[1,'替换为（留空删除）',second]]){
+  const label=element('label','',labelText),input=element('textarea','');input.rows=2;input.spellcheck=false;input.value=value;input.dataset.ruleField=String(index);input.setAttribute('aria-label',labelText);input.addEventListener('input',markRulesDirty);label.append(input);fields.append(label);
+ }
+ row.append(head,fields);root.append(row);
+}
+function renderRules(data){
+ rulesLoaded=true;rulesEditable=!!data.configured;rulesRevisionValue=data.revision||'';rulesDirty=false;
+ $('rule-words').value=(data.rules?.words||[]).join('\n');
+ $('words-count').textContent=(data.rules?.words||[]).length+' 条';
+ $('rule-replacements').replaceChildren();$('rule-patterns').replaceChildren();
+ for(const [key,value] of Object.entries(data.rules?.replacements||{}))addRuleRow('replacement',key,value);
+ for(const rule of data.rules?.patterns||[])addRuleRow('pattern',rule.pattern,rule.replacement);
+ $('rules-state').textContent=rulesEditable?'共用 CPA 配置':'未配置规则文件';
+ $('rules-state').className='badge'+(rulesEditable?' connected':'');
+ $('rules-save-state').textContent=rulesEditable?'已加载共享规则':'请先配置 cpa_config_file';
+ promptControls();
+}
+async function loadRules(){renderRules(await request('/prompt-rules'));}
+$('rule-words').addEventListener('input',markRulesDirty);
+$('add-replacement').addEventListener('click',()=>{addRuleRow('replacement');markRulesDirty();});
+$('add-pattern').addEventListener('click',()=>{addRuleRow('pattern');markRulesDirty();});
+$('reload-rules').addEventListener('click',()=>action(loadRules));
+$('prompt-rules-form').addEventListener('submit',event=>{event.preventDefault();action(async()=>{
+ const rules={words:$('rule-words').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),replacements:Object.create(null),patterns:[]};
+ for(const row of $('rule-replacements').children){
+  const fields=row.querySelectorAll('textarea'),key=fields[0].value;
+  if(!key.trim())throw new Error('字面替换的原始文本不能为空。');
+  if(Object.hasOwn(rules.replacements,key))throw new Error('字面替换存在重复的原始文本。');
+  rules.replacements[key]=fields[1].value;
+ }
+ for(const row of $('rule-patterns').children){
+  const fields=row.querySelectorAll('textarea');
+  if(!fields[0].value.trim())throw new Error('匹配正则不能为空。');
+  rules.patterns.push({pattern:fields[0].value,replacement:fields[1].value});
+ }
+ renderRules(await request('/prompt-rules','POST',{rules,revision:rulesRevisionValue}));
+ $('rules-save-state').textContent='已保存到 CPA · 后续请求生效';notice('混淆规则已保存到 CPA 共享配置。');
+});});

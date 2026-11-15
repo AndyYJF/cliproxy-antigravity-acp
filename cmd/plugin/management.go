@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var pluginVersion = "0.13.1"
+var pluginVersion = "0.14.0"
 
 const resourceBase = "/v0/resource/plugins/antigravity-acp"
 const managementBase = "/v0/management/plugins/antigravity-acp"
@@ -69,6 +69,8 @@ func managementRegistration() object {
 		},
 		"routes": []object{
 			{"Method": "GET", "Path": managementBase + "/status"},
+			{"Method": "GET", "Path": managementBase + "/prompt-rules"},
+			{"Method": "POST", "Path": managementBase + "/prompt-rules"},
 			{"Method": "POST", "Path": managementBase + "/models/refresh"},
 		},
 	}
@@ -134,6 +136,23 @@ func handleManagement(raw []byte) (any, error) {
 	}
 	if req.Method == "GET" && req.Path == resourceBase+"/version" {
 		return managementJSON(200, object{"plugin_version": pluginVersion, "cpa_cloak_version": cpacloak.UpstreamTag, "cpa_cloak_commit": cpacloak.UpstreamCommit}), nil
+	}
+	if req.Path == managementBase+"/prompt-rules" && (req.Method == "GET" || req.Method == "POST") {
+		var value any
+		var err error
+		if req.Method == "GET" {
+			value, err = promptRulesResponse()
+		} else {
+			value, err = savePromptRules(req.Body)
+		}
+		if err != nil {
+			status := 500
+			if f, ok := err.(*failure); ok {
+				status = f.HTTPStatus
+			}
+			return managementJSON(status, object{"error": err.Error()}), nil
+		}
+		return managementJSON(200, value), nil
 	}
 	assets := map[string]struct{ Name, Type string }{
 		resourceBase + "/overview":           {"index.html", "text/html; charset=utf-8"},
@@ -235,7 +254,7 @@ func handleManagement(raw []byte) (any, error) {
 		} else {
 			bridge["message"] = "暂时无法连接桥接服务，请检查容器和内部连接配置。"
 		}
-		return managementJSON(200, object{"plugin_version": pluginVersion, "bridge": bridge, "catalog": snapshotCatalog(), "checked_at": time.Now().UTC().Format(time.RFC3339)}), nil
+		return managementJSON(200, object{"plugin_version": pluginVersion, "prompt": promptStatus(), "bridge": bridge, "catalog": snapshotCatalog(), "checked_at": time.Now().UTC().Format(time.RFC3339)}), nil
 	case req.Method == "POST" && req.Path == managementBase+"/models/refresh":
 		body, err := readBridge(req.HostCallbackID, "/v1/models", 40*time.Second)
 		if err == nil {

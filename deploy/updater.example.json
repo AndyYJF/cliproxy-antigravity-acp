@@ -6,5 +6,6 @@
   "bridge_network": "cpanet",
   "bridge_token_file": "/opt/cpa-acp/state/bridge-token",
   "state_dir": "/opt/cpa-acp/state/plugin-updater",
-  "idle_seconds": 30
+  "idle_seconds": 30,
+  "status_file": "/opt/cpa-acp/state/plugins/antigravity-acp/update-status.json"
 }

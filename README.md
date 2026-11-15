@@ -2,7 +2,7 @@
 
 通过官方 Antigravity CLI 的 ACP 协议，将 Gemini 接入 CLIProxyAPI（CPA），让聊天客户端和 Agent 沿用 CPA 的 API 地址与 API Key。
 
-**当前版本：0.13.1** · [版本记录](CHANGELOG.md) · [Pi 配置](clients/pi/README.md) · [Codex 配置](clients/codex/README.md) · [CPA 主页面集成](management-center/README.md)
+**当前版本：0.14.0** · [版本记录](CHANGELOG.md) · [Pi 配置](clients/pi/README.md) · [Codex 配置](clients/codex/README.md) · [CPA 主页面集成](management-center/README.md)
 
 这是独立社区项目，不属于 Google 或 CPA 官方。使用官方 ACP 协议不等于获得 Google 背书，也不保证任意用途均符合账号套餐条款；部署者应自行确认账号及服务的使用权限。
 
@@ -44,7 +44,7 @@ flowchart LR
 
 | 组件 | 版本或平台 |
 | --- | --- |
-| 插件 / Bridge | 0.13.1 |
+| 插件 / Bridge | 0.14.0 |
 | CLIProxyAPI | `eceasy/cli-proxy-api:v8.0.69` |
 | Antigravity CLI | `agy 1.5.7`，ACP v1 |
 | 构建环境 | Linux amd64、Go 1.26、CGO C 编译器 |
@@ -58,14 +58,14 @@ flowchart LR
 
 从 [Releases](https://github.com/AndyYJF/cliproxy-antigravity-acp/releases) 下载 Linux amd64 完整部署包，无需安装 Go 或编译插件。仍需要 Docker Compose、curl、OpenSSL，以及单独安装的官方 Antigravity CLI。
 
-下面以 0.13.1 为例，在新的部署目录执行：
+下面以 0.14.0 为例，在新的部署目录执行：
 
 ~~~bash
 sudo mkdir -p /opt/cpa-acp
 sudo chown "$(id -u):$(id -g)" /opt/cpa-acp
 cd /opt/cpa-acp
 
-RELEASE_VERSION=0.13.1
+RELEASE_VERSION=0.14.0
 RELEASE_URL="https://github.com/AndyYJF/cliproxy-antigravity-acp/releases/download/v$RELEASE_VERSION"
 curl -fLO "$RELEASE_URL/cliproxy-antigravity-acp_${RELEASE_VERSION}_linux_amd64.tar.gz"
 curl -fLO "$RELEASE_URL/checksums.txt"
@@ -133,9 +133,9 @@ docker run --rm \
     CGO_ENABLED=1 go build -buildmode=c-shared -o bin/antigravity-acp.so ./cmd/plugin
     CGO_ENABLED=0 go build -o bin/acp-bridge ./cmd/bridge
   '
-docker build -t cliproxy-antigravity-acp:0.13.1 .
+docker build -t cliproxy-antigravity-acp:0.14.0 .
 docker run --rm --entrypoint /usr/local/bin/agy \
-  cliproxy-antigravity-acp:0.13.1 --version
+  cliproxy-antigravity-acp:0.14.0 --version
 ~~~
 
 `bin/antigravity-acp.h` 是 CGO 生成的头文件，部署时不需要。插件是原生共享库，升级 CPA 或迁移架构后应重新检查 ABI 兼容性。
@@ -163,7 +163,7 @@ sudo chmod 700 state/home
 sudo chown 10001:10001 state/bridge-token
 sudo chmod 400 state/bridge-token
 install -m 755 bin/antigravity-acp.so \
-  state/plugins/linux/amd64/antigravity-acp-v0.13.1.so
+  state/plugins/linux/amd64/antigravity-acp-v0.14.0.so
 ~~~
 
 Bridge 默认以 UID/GID `10001:10001` 运行。CPA 容器也必须能读取令牌文件；如 CPA 使用非 root 用户，请按实际 UID/GID 设置共享只读访问权限，不要将令牌改为所有人可读。
@@ -187,7 +187,7 @@ docker compose logs --tail=50 bridge
 
 ~~~dotenv
 ACP_NETWORK=your-existing-network
-ACP_IMAGE=cliproxy-antigravity-acp:0.13.1
+ACP_IMAGE=cliproxy-antigravity-acp:0.14.0
 ~~~
 
 该网络必须允许 Bridge 访问官方服务，不要设置为禁止外网的 `internal: true`。Bridge 健康检查路径为 `/healthz`，容器内默认监听 `:8328`，包括健康检查在内的请求都需要内部 Bearer 令牌；可通过插件管理页检查状态。
@@ -211,7 +211,7 @@ networks:
     name: cpanet
 ~~~
 
-如果 CPA 已有插件目录挂载，将构建产物命名为 `antigravity-acp-v0.13.1.so` 并放进该目录的 `linux/amd64/` 子目录；不要再用一个空目录覆盖其他插件。
+如果 CPA 已有插件目录挂载，将构建产物命名为 `antigravity-acp-v0.14.0.so` 并放进该目录的 `linux/amd64/` 子目录；不要再用一个空目录覆盖其他插件。
 
 将 [deploy/cpa-plugin.example.yaml](deploy/cpa-plugin.example.yaml) 合并到 **CPA 配置文件**中：
 
@@ -225,11 +225,12 @@ plugins:
       bridge_url: http://antigravity-acp-bridge:8328
       token_file: /run/antigravity-acp-token
       cpa_config_file: /CLIProxyAPI/config.yaml
+      update_status_file: /CLIProxyAPI/plugins/antigravity-acp/update-status.json
       store:
-        version: 0.13.1
+        version: 0.14.0
 ~~~
 
-`bridge_url` 和 `token_file` 位于插件配置根层级。`store.version` 选择同版本文件名（如 `antigravity-acp-v0.13.1.so`），必须与部署文件版本一致，不要将连接参数放进 `store`。
+`bridge_url` 和 `token_file` 位于插件配置根层级。`store.version` 选择同版本文件名（如 `antigravity-acp-v0.14.0.so`），必须与部署文件版本一致，不要将连接参数放进 `store`。
 
 在 CPA Compose 所在目录执行 `docker compose up -d <CPA服务名>`，使新增挂载和网络生效；只重载插件不能新增容器挂载。通过 CPA 管理页面确认插件已加载。首次尚未登录 Google 时，模型目录为空是正常现象。
 
@@ -325,7 +326,7 @@ Base URL 使用原来的 CPA 地址并以 `/v1` 结尾，API Key 不变，模型
 - 最近请求详情显示该请求的开关状态，以及搜索、读取工具调用次数。次数按 ACP 工具调用 ID 去重，包含尝试调用，不代表每次都成功。
 - 客户端函数工具继续交给客户端执行；文件、命令等服务端工具仍不允许。该功能不等于实现 OpenAI 托管 `web_search` 工具类型，客户端无需也不应额外声明这种托管工具。
 
-主页面集成需要同步部署 `v1.27.4-acp.5` 覆盖面板，以支持保存开关的管理操作。旧面板可显示新卡片，但不能代办保存；独立管理页不受父页面版本影响。
+主页面集成需要同步部署 `v1.27.4-acp.6` 覆盖面板，以支持保存开关的管理操作。旧面板可显示新卡片，但不能代办保存；独立管理页不受父页面版本影响。
 
 ## CPA 提示词处理与自动跟随
 
@@ -354,6 +355,19 @@ upstream:
 ~~~
 
 字面身份句替换只匹配该句，不自动扩展为所有 GPT 版本。正则删除规则会移除匹配到的指令内容；使用这些示例前，应确认这正是期望的处理范围。
+
+### WebUI 规则与更新状态
+
+在插件页面的「提示词混淆」卡片中，可以编辑关键词、字面替换和按顺序执行的正则替换，直接保存到上述 CPA 共享配置。主配置需允许 CPA 进程写入；不要以 `:ro` 挂载。保存同时影响原 CPA Antigravity 通道。服务端检查 Go RE2 正则，错误时不改动配置；共享规则已变化时拒绝覆盖并保留当前草稿，需重新加载后再保存。自动状态刷新不会清空未保存的输入。
+
+卡片显示当前插件实际编译采用的 CPA 版本和提交，不是 CPA 宿主版本；分别保留最近检查结果和最近升级结果。升级失败时显示错误或回滚结果。主页面需更新到 `v1.27.4-acp.6`，才能代办规则读取和保存；独立管理页可直接连接。
+
+若启用了下方自动升级器，设置两端指向同一个状态文件：
+
+- 升级器 JSON 的 `status_file`：宿主机路径，例如 `/opt/cpa-acp/state/plugins/antigravity-acp/update-status.json`。
+- CPA 插件的 `update_status_file`：容器内路径，例如 `/CLIProxyAPI/plugins/antigravity-acp/update-status.json`。
+
+状态文件只包含版本、时间和更新结果，不包含令牌或配置内容。使用现有插件目录挂载即可；不要将包含配置备份的整个 `state_dir` 暴露给插件。升级器下次运行后会生成状态，未配置时页面明确显示尚未接入。启用状态是最近检查时的快照，停止定时器后可手动运行一次 service 更新快照。
 
 ### 自动同步上游
 
@@ -442,12 +456,12 @@ Bridge Compose 中可修改以下环境变量，修改后执行 `docker compose 
 1. 记录当前源码提交、CLI 版本、镜像标签和插件版本。将 CPA 配置、当前插件及定制 `management.html` 备份到插件扫描目录之外；敏感状态应单独安全备份。
 2. 拉取明确版本的源码，按构建步骤重新生成 Bridge 镜像与插件。使用新的镜像标签，保留旧镜像供回滚。
 3. 等待路由页面中的活动请求结束，再更新 Bridge。重建 Bridge 会清空内存会话和统计，可能中断尚未结束的请求。
-4. 部署与新版本号匹配的共享库文件。以下以 0.13.1 为例，后续升级请同步替换文件名中的版本号；使用临时文件再重命名，避免直接覆盖已加载库的内容：
+4. 部署与新版本号匹配的共享库文件。以下以 0.14.0 为例，后续升级请同步替换文件名中的版本号；使用临时文件再重命名，避免直接覆盖已加载库的内容：
 
 ~~~bash
 cd /opt/cpa-acp
-install -m 755 bin/antigravity-acp.so state/plugins/linux/amd64/antigravity-acp-v0.13.1.so.new
-mv state/plugins/linux/amd64/antigravity-acp-v0.13.1.so.new state/plugins/linux/amd64/antigravity-acp-v0.13.1.so
+install -m 755 bin/antigravity-acp.so state/plugins/linux/amd64/antigravity-acp-v0.14.0.so.new
+mv state/plugins/linux/amd64/antigravity-acp-v0.14.0.so.new state/plugins/linux/amd64/antigravity-acp-v0.14.0.so
 ~~~
 
 5. 更新 `ACP_IMAGE`、CPA 插件 `store.version`，重新创建 Bridge 并在 CPA 中重新加载插件。若当前 CPA 未完成热重载，在维护窗口重新创建/重启 CPA。
@@ -461,7 +475,7 @@ mv state/plugins/linux/amd64/antigravity-acp-v0.13.1.so.new state/plugins/linux/
 
 | 现象 | 排查方向 |
 | --- | --- |
-| 插件找不到或加载失败 | 检查 CPA 版本、架构、`plugins.dir`、`linux/amd64/antigravity-acp-v0.13.1.so` 和共享库权限 |
+| 插件找不到或加载失败 | 检查 CPA 版本、架构、`plugins.dir`、`linux/amd64/antigravity-acp-v0.14.0.so` 和共享库权限 |
 | Bridge 未连接 / 401 | 检查两个容器是否同网、DNS、内部令牌是否一致且可读；不要混用 CPA API Key |
 | 登录成功但没有模型 | 手动选择账号、刷新目录，再重新加载 CPA 插件；以账号实际返回目录为准 |
 | 主面板内管理请求失败 | 确认部署了匹配版本的面板覆盖代码；独立页可用于区分面板和 Bridge 问题 |
@@ -504,8 +518,8 @@ docker run --rm -v "$PWD:/src" -w /src \
 
 ~~~bash
 # 提交并推送代码、更新 CHANGELOG 和源码默认版本后，使用新的版本号
-git tag -a v0.13.1 -m "Release v0.13.1"
-git push origin v0.13.1
+git tag -a v0.14.0 -m "Release v0.14.0"
+git push origin v0.14.0
 ~~~
 
 工作流使用仓库内置 `GITHUB_TOKEN`，无需配置 Google 凭证或个人 PAT。失败后可以在 Actions 中重新运行；未完成的草稿会继续上传，已公开的 Release 不会被重跑覆盖。需要修复已发布内容时，请使用新 tag。

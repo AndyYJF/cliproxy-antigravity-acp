@@ -1,6 +1,6 @@
 services:
   bridge:
-    image: ${ACP_IMAGE:-cliproxy-antigravity-acp:0.13.1}
+    image: ${ACP_IMAGE:-cliproxy-antigravity-acp:0.14.0}
     container_name: antigravity-acp-bridge
     environment:
       ACP_MAX_CONCURRENCY: "4"

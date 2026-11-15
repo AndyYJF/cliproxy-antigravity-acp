@@ -2,7 +2,7 @@
 
 此目录提供 Management Center 的局部覆盖文件，使 ACP 插件在 CPA 主面板中复用登录状态、同步主题，并支持凭证、OAuth 与配额操作。
 
-基线：上游 [Cli-Proxy-API-Management-Center](https://github.com/router-for-me/Cli-Proxy-API-Management-Center) **v1.27.4**，提交 `d06a110594e8a3949684834d990eeb9c8e888499`。覆盖代码对应定制标识 `v1.27.4-acp.5`，构建使用 Bun 1.4.3。升级上游后应重新合并并检查接口，不要盲目覆盖不同版本。
+基线：上游 [Cli-Proxy-API-Management-Center](https://github.com/router-for-me/Cli-Proxy-API-Management-Center) **v1.27.4**，提交 `d06a110594e8a3949684834d990eeb9c8e888499`。覆盖代码对应定制标识 `v1.27.4-acp.6`，构建使用 Bun 1.4.3。升级上游后应重新合并并检查接口，不要盲目覆盖不同版本。
 
 ## 构建
 
@@ -25,7 +25,7 @@ cp management-center/acpManagementBridge.test.ts \
 cd build/management-upstream
 bun install --frozen-lockfile
 bun test tests/acpManagementBridge.test.ts
-VERSION=v1.27.4-acp.5 bun run build
+VERSION=v1.27.4-acp.6 bun run build
 ~~~
 
 如果构建目录已经存在，先检查其版本和未提交修改，不要直接重复 clone 或覆盖自己的改动。产物为 `build/management-upstream/dist/index.html`，通过 Vite 单文件插件打包。
@@ -65,7 +65,7 @@ remote-management:
 
 ## 工作方式
 
-- 父页面只通过固定白名单代理状态、模型目录、账号管理、OAuth、配额刷新与原生联网开关保存操作。
+- 父页面只通过固定白名单代理状态、模型目录、账号管理、OAuth、配额刷新、原生联网开关保存、混淆规则读取与保存操作。
 - 验证 iframe 来源、窗口和插件 ID；CPA 管理密钥不会传给 iframe。
 - 路由或登录状态变化时取消未完成请求。
 - 同步白色、羊毛纸和暗色主题。

@@ -56,6 +56,20 @@ class UpdateTests(unittest.TestCase):
     def run_update(self):
         updater.update(self.config, lambda **values: self.reports.append(values))
 
+    def test_status_preserves_last_upgrade_and_exports_snapshot(self):
+        self.config["status_file"] = str(pathlib.Path(self.temp.name) / "shared/status.json")
+        with patch.object(updater.subprocess, "run", return_value=types.SimpleNamespace(returncode=0)):
+            updater.record_status(self.config, {"status": "updated", "version": "0.13.0", "previous_version": "0.12.0"})
+            updater.record_status(self.config, {"status": "current", "version": "0.13.0"})
+            status = json.loads(pathlib.Path(self.config["status_file"]).read_text())
+            self.assertEqual(status["status"], "current")
+            self.assertEqual(status["last_update"]["status"], "updated")
+            self.assertTrue(status["enabled"])
+            updater.record_status(self.config, {"status": "failed", "error": "fixture network error"})
+            status = json.loads(pathlib.Path(self.config["status_file"]).read_text())
+            self.assertEqual(status["error"], "fixture network error")
+            self.assertEqual(status["last_update"]["version"], "0.13.0")
+
     def test_idle_update_preserves_other_config(self):
         self.run_update()
         self.assertEqual(self.path.read_text(), self.original.replace("version: 0.12.0", "version: 0.13.0"))

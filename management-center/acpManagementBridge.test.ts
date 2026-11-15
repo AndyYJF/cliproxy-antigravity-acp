@@ -42,3 +42,10 @@ test('native web settings accepts only a boolean switch', () => {
  expect(resolveACPPayload('save-settings',{native_web:'true'})).toBeNull();
  expect(resolveACPPayload('save-settings',{native_web:true,url:'https://example.com'})).toBeNull();
 });
+
+ test("prompt rules use authenticated relay", () => {
+  expect(resolveACPAction("prompt-rules")?.method).toBe("GET");
+  expect(resolveACPAction("save-prompt-rules")?.path).toBe("/v0/management/plugins/antigravity-acp/prompt-rules");
+  expect(resolveACPPayload("save-prompt-rules", {rules:{words:[]},revision:"fixture"})).toEqual({rules:{words:[]},revision:"fixture"});
+  expect(resolveACPPayload("save-prompt-rules", {rules:[],revision:"fixture"})).toBeNull();
+ });

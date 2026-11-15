@@ -9,7 +9,7 @@
 <article class="metric"><p>桥接服务</p><strong id="bridge-state">待连接</strong><span id="bridge-detail">连接管理会话后查看</span></article>
 <article class="metric"><p>可用 Gemini 模型</p><strong id="model-count">—</strong><span id="catalog-time">尚未读取模型目录</span></article>
 <article class="metric"><p>处理中请求</p><strong id="active-count">—</strong><span>当前桥接服务的并发请求</span></article>
-<article class="metric"><p>插件版本</p><strong id="plugin-version">0.13.1</strong><span id="bridge-version">桥接版本待获取</span></article>
+<article class="metric"><p>插件版本</p><strong id="plugin-version">0.14.0</strong><span id="bridge-version">桥接版本待获取</span></article>
 </section>
 <section class="panel route-panel" id="request-route" aria-labelledby="route-title">
 <div class="section-head"><div><p class="eyebrow">REQUEST ROUTE</p><h2 id="route-title">请求路由</h2><p>查看当前通道状态、会话复用统计与实际请求记录。</p></div><div class="route-actions"><label class="route-auto"><input type="checkbox" id="route-auto" checked><span>每 5 秒自动刷新</span></label><span id="route-state" class="badge">等待状态</span><button id="refresh-route" class="quiet" disabled>刷新路由 ↻</button></div></div>
@@ -26,6 +26,21 @@
 <p class="route-caption">显示运行中请求和本次启动后最近 20 条已结束请求。来源 IP 为入口代理转发的地址，未提供时显示未知。耗时从桥接收到请求开始，包含排队、会话准备与模型响应；不含客户端执行工具的时间。</p>
 </section>
 <section class="panel native-web-panel" aria-labelledby="native-web-title"><div class="section-head"><div><p class="eyebrow">NATIVE WEB</p><h2 id="native-web-title">原生联网搜索</h2><p>由官方 Antigravity CLI 搜索网页并整理来源，聊天与 Agent 共用此设置。</p></div><label class="native-web-switch"><input id="native-web-toggle" type="checkbox" role="switch" aria-labelledby="native-web-title" disabled><span class="native-web-track" aria-hidden="true"></span><strong id="native-web-state">待连接</strong></label></div><div class="native-web-tools"><span><strong>search_web</strong> 联网搜索</span><span><strong>read_url_content</strong> 读取适配已保留</span></div><p class="footnote" id="native-web-hint">保存后对新请求生效，进行中的请求继续使用原设置。当前已验证的 agy 1.5.7 ACP 未提供网页读取工具；不会用搜索摘要冒充网页读取，也不会通过其他服务抓取。</p></section>
+<section class="panel prompt-panel" aria-labelledby="prompt-title">
+<div class="section-head"><div><p class="eyebrow">CPA PROMPT RULES</p><h2 id="prompt-title">提示词混淆</h2><p>共用 CPA 的 AGV 规则，仅处理系统指令；保存后对新请求生效。</p></div><span id="rules-state" class="badge">待连接</span></div>
+<div class="prompt-overview">
+<article class="prompt-version"><span class="route-label">当前跟随 CPA</span><strong id="prompt-cpa-version">—</strong><code id="prompt-cpa-commit">算法版本待获取</code><p>官方稳定版实现 · 自动同步上游</p></article>
+<article class="update-overview"><div class="update-heading"><strong>自动更新</strong><span id="update-state" class="badge">待获取</span></div><dl class="update-facts"><div><dt>最近检查</dt><dd id="update-checked">—</dd></div><div><dt>检查结果</dt><dd id="update-result">—</dd></div><div><dt>最近升级</dt><dd id="update-last-time">—</dd></div><div><dt>升级结果</dt><dd id="update-last-result">尚无记录</dd></div></dl><p id="update-message" class="footnote">连接后显示服务器更新器的实际记录。</p></article>
+</div>
+<form id="prompt-rules-form"><fieldset id="rules-editor" disabled>
+<div class="rules-grid">
+<div class="rule-card rule-words"><div class="rule-heading"><h3>关键词混淆</h3><span id="words-count" class="rule-count">0 条</span></div><p>每行一个词或短语，使用 CPA 原生匹配规则。</p><label class="search-label" for="rule-words">混淆关键词，每行一条</label><textarea id="rule-words" rows="8" spellcheck="false" placeholder="API&#10;proxy"></textarea></div>
+<div class="rule-card"><div class="rule-heading"><h3>字面替换</h3><button id="add-replacement" type="button" class="quiet">＋ 添加替换</button></div><p>把匹配文本替换为指定内容；留空表示删除。</p><div id="rule-replacements" class="rule-rows"></div></div>
+<div class="rule-card rule-patterns"><div class="rule-heading"><h3>正则替换</h3><button id="add-pattern" type="button" class="quiet">＋ 添加正则</button></div><p>按列表顺序处理 Go RE2 正则。替换内容留空表示删除匹配片段。</p><div id="rule-patterns" class="rule-rows"></div></div>
+</div>
+</fieldset><div class="rules-footer"><span id="rules-save-state" class="muted" role="status">连接后加载共享规则</span><div class="actions"><button id="reload-rules" type="button" disabled>重新加载规则</button><button id="save-rules" type="submit" class="primary" disabled>保存到 CPA</button></div></div></form>
+<p class="footnote">规则写入 CPA 主配置，同时影响使用这份配置的原 CPA Antigravity 通道。自动刷新只更新运行状态，保留未保存的编辑。</p>
+</section>
 <section class="panel" id="accounts-panel"><div class="section-head"><div><h2>凭证与账号</h2><p>使用官方 Google OAuth 添加 Antigravity 登录，选择此通道使用的账号。</p></div><div class="actions"><button id="refresh-accounts" disabled>刷新账号</button><button id="add-account" class="primary" disabled>添加 OAuth 账号</button></div></div>
 <div id="accounts" class="account-list"><p class="empty">连接管理会话后查看账号。</p></div><p class="footnote">凭证由官方 CLI 保存在服务器，不在页面显示或下载。新账号需手动切换；切换只影响后续请求。已有登录会保留。配额按需查询，成功结果缓存 5 分钟；仅展示 Gemini 配额。</p>
 <div id="oauth-panel" class="oauth-panel" hidden><div class="section-head"><h3>添加 Antigravity 账号</h3><button id="oauth-close" class="quiet">收起</button></div><form id="oauth-start-form"><label for="account-label">账号备注</label><div class="input-row"><input id="account-label" maxlength="80" placeholder="例如：个人 Pro" required><button id="oauth-start" class="primary" type="submit">生成授权链接</button></div></form>

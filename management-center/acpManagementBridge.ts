@@ -11,6 +11,8 @@ export function resolveACPAction(action: unknown) {
     };
   }
   const routes: Record<string, { method: 'GET' | 'POST'; path: string }> = {
+    'prompt-rules': { method: 'GET', path: '/prompt-rules' },
+    'save-prompt-rules': { method: 'POST', path: '/prompt-rules' },
     'save-settings': { method: 'POST', path: '/settings' },
     accounts: { method: 'GET', path: '/accounts' },
     'refresh-account': { method: 'POST', path: '/accounts/refresh' },
@@ -42,9 +44,14 @@ export function isACPFrameMessage(
 }
 
 export function resolveACPPayload(action: unknown, value: unknown) {
-  if (action === 'status' || action === 'refresh-models' || action === 'accounts') return undefined;
+  if (action === 'status' || action === 'refresh-models' || action === 'accounts' || action === 'prompt-rules') return undefined;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
+  if (action === 'save-prompt-rules') {
+    if (Object.keys(input).some((key) => !['rules', 'revision'].includes(key))) return null;
+    if (typeof input.revision !== 'string' || !input.rules || typeof input.rules !== 'object' || Array.isArray(input.rules)) return null;
+    return { rules: input.rules, revision: input.revision };
+  }
   if (action === 'save-settings') {
     if (Object.keys(input).length !== 1 || typeof input.native_web !== 'boolean') return null;
     return { native_web: input.native_web };

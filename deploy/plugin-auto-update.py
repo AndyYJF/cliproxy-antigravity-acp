@@ -146,6 +146,37 @@ def update(config, report):
         raise
     report(status="updated", version=target, previous_version=old, cpa=manifest["cpa"]["tag"])
 
+def record_status(config, values):
+    state = pathlib.Path(config["state_dir"])
+    path = state / "status.json"
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        previous = {}
+    values = dict(values, checked_at=datetime.now(timezone.utc).isoformat())
+    observed = subprocess.run(["systemctl", "is-enabled", config.get("timer_unit", "cpa-acp-update.timer")],
+                              capture_output=True, text=True)
+    if observed.returncode in (0, 1):
+        values["enabled"] = observed.returncode == 0
+    if values["status"] in ("updated", "rolled_back"):
+        values["last_update"] = {k: v for k, v in values.items() if k != "enabled"}
+    elif previous.get("last_update"):
+        values["last_update"] = previous["last_update"]
+    elif previous.get("status") in ("updated", "rolled_back"):
+        values["last_update"] = {k: v for k, v in previous.items() if k != "enabled"}
+    payload = json.dumps(values, ensure_ascii=False, indent=2) + "\n"
+    temp = state / "status.json.next"
+    temp.write_text(payload, encoding="utf-8")
+    temp.replace(path)
+    if config.get("status_file"):
+        public = pathlib.Path(config["status_file"])
+        public.parent.mkdir(parents=True, exist_ok=True)
+        pending = public.with_name(public.name + ".next")
+        pending.write_text(payload, encoding="utf-8")
+        pending.chmod(0o644)
+        pending.replace(public)
+    print(json.dumps(values, ensure_ascii=False), flush=True)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -153,12 +184,11 @@ def main():
     config = json.loads(pathlib.Path(args.config).read_text())
     state = pathlib.Path(config["state_dir"])
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    last_report = {}
     def report(**values):
-        values["checked_at"] = datetime.now(timezone.utc).isoformat()
-        temp = state / "status.json.next"
-        temp.write_text(json.dumps(values, ensure_ascii=False, indent=2) + "\n")
-        temp.replace(state / "status.json")
-        print(json.dumps(values, ensure_ascii=False), flush=True)
+        last_report.clear()
+        last_report.update(values)
+        record_status(config, values)
     with (state / "update.lock").open("w") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -166,8 +196,11 @@ def main():
             print("Another update check is already running")
             return
         try:
+            report(status="checking")
             update(config, report)
         except Exception as error:
+            if last_report.get("status") != "rolled_back":
+                report(status="failed", error=str(error))
             print("Update failed: " + str(error), flush=True)
             raise SystemExit(1)
 

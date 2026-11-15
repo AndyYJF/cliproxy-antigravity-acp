@@ -12,9 +12,9 @@ import (
 )
 
 type cpaPromptRules struct {
-	Words        []string
-	Replacements map[string]string
-	Patterns     []cpaconfig.SensitivePatternRule
+	Words        []string                         `json:"words"`
+	Replacements map[string]string                `json:"replacements"`
+	Patterns     []cpaconfig.SensitivePatternRule `json:"patterns"`
 }
 
 var promptMatcherCache struct {
