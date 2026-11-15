@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cliproxy-antigravity-acp/internal/cpacloak"
 	"embed"
 	"encoding/json"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 	"time"
 )
 
-var pluginVersion = "0.12.0"
+var pluginVersion = "0.13.0"
 
 const resourceBase = "/v0/resource/plugins/antigravity-acp"
 const managementBase = "/v0/management/plugins/antigravity-acp"
@@ -64,7 +65,7 @@ func managementRegistration() object {
 	result := object{
 		"resources": []object{
 			{"Path": "/overview", "Menu": "Antigravity ACP", "Description": "Gemini 通道状态、模型目录与请求路由"},
-			{"Path": "/account-helpers.js"}, {"Path": "/app.js"}, {"Path": "/style.css"}, {"Path": "/logo.svg"}, {"Path": "/codex-models.json"},
+			{"Path": "/version"}, {"Path": "/account-helpers.js"}, {"Path": "/app.js"}, {"Path": "/style.css"}, {"Path": "/logo.svg"}, {"Path": "/codex-models.json"},
 		},
 		"routes": []object{
 			{"Method": "GET", "Path": managementBase + "/status"},
@@ -130,6 +131,9 @@ func handleManagement(raw []byte) (any, error) {
 	}
 	if err := json.Unmarshal(raw, &req); err != nil {
 		return nil, err
+	}
+	if req.Method == "GET" && req.Path == resourceBase+"/version" {
+		return managementJSON(200, object{"plugin_version": pluginVersion, "cpa_cloak_version": cpacloak.UpstreamTag, "cpa_cloak_commit": cpacloak.UpstreamCommit}), nil
 	}
 	assets := map[string]struct{ Name, Type string }{
 		resourceBase + "/overview":           {"index.html", "text/html; charset=utf-8"},

@@ -10,3 +10,7 @@ It is not included in this repository and remains subject to its own terms.
 
 No separate license has been declared for the original code in this repository.
 Third-party notices do not grant a license to unrelated original code.
+
+internal/cpacloak/helps reuses the official CPA matcher and its tests; only the internal config import is adapted.
+The upstream commit and source digests are recorded in internal/cpacloak/upstream.json.
+The extracted rule type and upstream MIT license are retained alongside it.

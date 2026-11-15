@@ -1,0 +1,10 @@
+[Unit]
+Description=Update the ACP plugin from verified CPA prompt releases
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/cpa-acp/deploy/plugin-auto-update.py --config /etc/cpa-acp-updater.json
+TimeoutStartSec=5min
+UMask=0077

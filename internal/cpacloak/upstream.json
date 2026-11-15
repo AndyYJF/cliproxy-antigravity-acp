@@ -1,0 +1,14 @@
+{
+  "repository": "router-for-me/CLIProxyAPI",
+  "tag": "v8.0.72",
+  "commit": "e96d4c4818851cf0e96d27b2bc8b67379e449d9e",
+  "sources": {
+    "internal/runtime/executor/helps/cloak_obfuscate.go": "45f88e76e144bbb57b92dcf417c11505cf21d09ca404837c03c4fb28c589bdfd",
+    "internal/runtime/executor/helps/cloak_obfuscate_test.go": "d582be181f579733588f2efc43d7dba1c109f89545a65b84257fd4d599af5d1a"
+  },
+  "rule_sha256": "ed6ca6d2ebec5184a65951ca14064865c47210f3144a86169998fbf78920adb8",
+  "dependencies": {
+    "github.com/MoeForge/moego": "v0.1.0-alpha.3",
+    "github.com/sirupsen/logrus": "v1.9.3"
+  }
+}

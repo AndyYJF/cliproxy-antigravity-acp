@@ -45,3 +45,6 @@ bridge-token
 
 # Release artifacts
 /dist/
+
+# Python tooling caches
+__pycache__/

@@ -1,0 +1,60 @@
+name: Follow CPA stable
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cpa-stable-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.publish.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Sync official stable matcher and tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/sync-cpa-cloak.py
+      - name: Compile and run upstream checks
+        run: |
+          if git diff --quiet -- internal/cpacloak; then exit 0; fi
+          python3 scripts/update-cpa-deps.py
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src \
+            golang:1.26-bookworm bash -c '
+              go mod tidy
+              gofmt -w internal/cpacloak/config/types.go internal/cpacloak/version.go
+              go test ./internal/cpacloak/... ./cmd/plugin
+            '
+      - name: Publish verified source and tag
+        id: publish
+        run: |
+          if git diff --quiet -- internal/cpacloak go.mod go.sum; then exit 0; fi
+          tag=$(python3 scripts/bump-cpa-release.py)
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add internal/cpacloak go.mod go.sum cmd/plugin/management.go cmd/plugin/web/index.html README.md CHANGELOG.md deploy/cpa-plugin.example.yaml
+          git commit -m "chore: sync official CPA prompt processing ($tag)"
+          git tag -a "$tag" -m "Automatic CPA prompt update $tag"
+          git push --atomic origin HEAD:main "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: sync
+    if: needs.sync.outputs.tag != ''
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.sync.outputs.tag }}
+    permissions:
+      contents: write

@@ -1,6 +1,11 @@
 name: Release
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
   push:
     tags:
       - 'v[0-9]*'
@@ -9,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -19,11 +24,17 @@ jobs:
     permissions:
       contents: write
     env:
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Verify idle updater and rollback
+        run: |
+          python3 -m pip install PyYAML==6.0.2
+          python3 -m unittest discover -s tests -p test_plugin_auto_update.py
 
       - name: Test and build Linux amd64
         run: |
@@ -48,12 +59,15 @@ jobs:
             fi
           else
             cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          Linux amd64 · CPA v8.0.69 · Go 1.26 / Debian bookworm
+          Linux amd64 · Go 1.26 / Debian bookworm
+
+AGV 提示词算法跟随官方 CPA 稳定版，具体 tag/commit 见 auto-update.json。
 
           - **cliproxy-antigravity-acp_*_linux_amd64.tar.gz**：完整部署包，包含插件、Bridge、Dockerfile、Compose 和部署说明。
           - **antigravity-acp_*_linux_amd64.zip**：CPA 插件包。
           - **acp-bridge-linux-amd64**：独立 Bridge 二进制。
           - **checksums.txt**：SHA-256 校验值。
+          - **auto-update.json**：仅插件自动升级的版本与兼容信息。
 
           官方 Antigravity CLI 不包含在发布包中，请按 README 单独安装到 bin/agy，再构建 Bridge 容器。升级时保留原 state/ 和内部令牌。定制 CPA 主面板仍需按 management-center/README.md 构建。
           NOTES

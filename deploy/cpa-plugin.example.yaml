@@ -7,5 +7,6 @@ plugins:
       enabled: true
       bridge_url: http://antigravity-acp-bridge:8328
       token_file: /run/antigravity-acp-token
+      cpa_config_file: /CLIProxyAPI/config.yaml
       store:
-        version: 0.12.0
+        version: 0.13.0

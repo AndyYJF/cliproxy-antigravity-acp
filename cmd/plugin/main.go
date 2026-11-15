@@ -86,8 +86,9 @@ type failure struct {
 func (e *failure) Error() string { return e.Message }
 
 type config struct {
-	BridgeURL string `yaml:"bridge_url"`
-	TokenFile string `yaml:"token_file"`
+	CPAConfigFile string `yaml:"cpa_config_file"`
+	BridgeURL     string `yaml:"bridge_url"`
+	TokenFile     string `yaml:"token_file"`
 }
 
 var mu sync.RWMutex
@@ -215,7 +216,7 @@ func handle(method string, raw []byte) (any, error) {
 		mu.Lock()
 		current = c
 		mu.Unlock()
-		return object{"schema_version": 10, "metadata": object{"Name": provider, "Version": pluginVersion, "Author": "AndyYJF", "GitHubRepository": "https://github.com/AndyYJF/cliproxy-antigravity-acp", "Logo": resourceBase + "/logo.svg", "ConfigFields": []object{{"Name": "bridge_url", "Type": "string", "Description": "ACP 内部桥接地址（Docker 内网）"}, {"Name": "token_file", "Type": "string", "Description": "内部桥接密钥文件路径（不是 CPA 或 Google 密钥）"}}}, "capabilities": object{"management_api": true, "model_provider": true, "model_router": true, "executor": true, "executor_model_scope": "static", "executor_input_formats": []string{"chat-completions", "responses"}, "executor_output_formats": []string{"chat-completions", "responses"}}}, nil
+		return object{"schema_version": 10, "metadata": object{"Name": provider, "Version": pluginVersion, "Author": "AndyYJF", "GitHubRepository": "https://github.com/AndyYJF/cliproxy-antigravity-acp", "Logo": resourceBase + "/logo.svg", "ConfigFields": []object{{"Name": "cpa_config_file", "Type": "string", "Description": "CPA 配置文件路径；共用官方 AGV 混淆规则，留空不改写"}, {"Name": "bridge_url", "Type": "string", "Description": "ACP 内部桥接地址（Docker 内网）"}, {"Name": "token_file", "Type": "string", "Description": "内部桥接密钥文件路径（不是 CPA 或 Google 密钥）"}}}, "capabilities": object{"management_api": true, "model_provider": true, "model_router": true, "executor": true, "executor_model_scope": "static", "executor_input_formats": []string{"chat-completions", "responses"}, "executor_output_formats": []string{"chat-completions", "responses"}}}, nil
 	case "management.register":
 		return managementRegistration(), nil
 	case "management.handle":
@@ -294,7 +295,9 @@ func handle(method string, raw []byte) (any, error) {
 		if err := json.Unmarshal(req.Payload, &body); err != nil {
 			return nil, err
 		}
-		neutralizeClientIdentity(body, path == "/v1/responses")
+		if err := obfuscateClientSystem(body, path == "/v1/responses"); err != nil {
+			return nil, err
+		}
 		body["model"] = req.Model
 		body["stream"] = method == "executor.execute_stream"
 		payload, _ := json.Marshal(body)

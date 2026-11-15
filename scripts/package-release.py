@@ -2,6 +2,7 @@
 """Package only release binaries and public deployment files."""
 import hashlib
 import io
+import json
 import pathlib
 import re
 import sys
@@ -31,7 +32,9 @@ with tarfile.open(bundle, "w:gz") as archive:
     archive.add(plugin, arcname="bin/antigravity-acp.so")
     archive.add(bridge, arcname="bin/acp-bridge")
     for name in [".dockerignore", "Dockerfile", "README.md", "CHANGELOG.md",
-                 "LICENSE-CPA", "NOTICE", "clients", "management-center"]:
+                 "LICENSE-CPA", "NOTICE", "clients", "management-center",
+                 "deploy/plugin-auto-update.py", "deploy/cpa-acp-update.service",
+                 "deploy/cpa-acp-update.timer", "deploy/updater.example.json"]:
         archive.add(root / name, arcname=name)
     for name in ["compose.yaml", "deploy/cpa-plugin.example.yaml"]:
         content = (root / name).read_text(encoding="utf-8")
@@ -54,7 +57,10 @@ with tarfile.open(bundle, "w:gz") as archive:
 bridge_asset = dist / "acp-bridge-linux-amd64"
 bridge_asset.write_bytes(bridge.read_bytes())
 bridge_asset.chmod(0o755)
-assets = [plugin_zip, bundle, bridge_asset]
+upstream = json.loads((root / "internal/cpacloak/upstream.json").read_text())
+manifest = dist / "auto-update.json"
+manifest.write_text(json.dumps({"schema": 1, "kind": "cpa-cloak-plugin", "version": version, "minimum_bridge_version": "0.12.0", "cpa": {"tag": upstream["tag"], "commit": upstream["commit"]}}, indent=2) + "\n", encoding="utf-8")
+assets = [plugin_zip, bundle, bridge_asset, manifest]
 (dist / "checksums.txt").write_text(
     "".join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in assets),
     encoding="utf-8",

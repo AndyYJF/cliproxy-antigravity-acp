@@ -1,0 +1,10 @@
+{
+  "cpa_config": "/opt/your-cpa/config.yaml",
+  "plugin_dir": "/opt/cpa-acp/state/plugins/linux/amd64",
+  "cpa_base_url": "http://127.0.0.1:8317",
+  "bridge_container": "antigravity-acp-bridge",
+  "bridge_network": "cpanet",
+  "bridge_token_file": "/opt/cpa-acp/state/bridge-token",
+  "state_dir": "/opt/cpa-acp/state/plugin-updater",
+  "idle_seconds": 30
+}
