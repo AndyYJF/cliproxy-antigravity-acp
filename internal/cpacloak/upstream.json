@@ -1,9 +1,9 @@
 {
   "repository": "router-for-me/CLIProxyAPI",
-  "tag": "v8.0.72",
-  "commit": "e96d4c4818851cf0e96d27b2bc8b67379e449d9e",
+  "tag": "v8.0.74",
+  "commit": "14144df573c77e8e0e1eeaa450d3e63a068372df",
   "sources": {
-    "internal/runtime/executor/helps/cloak_obfuscate.go": "45f88e76e144bbb57b92dcf417c11505cf21d09ca404837c03c4fb28c589bdfd",
+    "internal/runtime/executor/helps/cloak_obfuscate.go": "0a50d20802a5aeae1a17a117ce57fe1561ba14f670f9cf9153325850792f4e79",
     "internal/runtime/executor/helps/cloak_obfuscate_test.go": "d582be181f579733588f2efc43d7dba1c109f89545a65b84257fd4d599af5d1a"
   },
   "rule_sha256": "ed6ca6d2ebec5184a65951ca14064865c47210f3144a86169998fbf78920adb8",

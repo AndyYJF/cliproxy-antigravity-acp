@@ -1,7 +1,6 @@
 package helps
 
 import (
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/MoeForge/moego/ojson"
+	"github.com/MoeForge/moego/regexp"
 	"cliproxy-antigravity-acp/internal/cpacloak/config"
 	log "github.com/sirupsen/logrus"
 )

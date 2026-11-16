@@ -1,4 +1,4 @@
-// Code generated from CPA v8.0.72; DO NOT EDIT.
+// Code generated from CPA v8.0.74; DO NOT EDIT.
 package config
 
 type SensitivePatternRule struct {
