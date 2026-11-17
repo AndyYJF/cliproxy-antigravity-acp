@@ -3,7 +3,7 @@ module cliproxy-antigravity-acp
 go 1.26.0
 
 require (
-	github.com/MoeForge/moego v0.1.0-alpha.3
+	github.com/MoeForge/moego v0.1.0-alpha.4
 	github.com/sirupsen/logrus v1.9.3
 	gopkg.in/yaml.v3 v3.0.1
 )
