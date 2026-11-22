@@ -10,4 +10,4 @@ plugins:
       cpa_config_file: /CLIProxyAPI/config.yaml
       update_status_file: /CLIProxyAPI/plugins/antigravity-acp/update-status.json
       store:
-        version: 0.14.2
+        version: 0.14.3
